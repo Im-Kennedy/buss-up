@@ -1,14 +1,26 @@
 :root {
-  --bg: #f0f7f8;
+  --bg: #f4f7f9;
+  --surface: #ffffff;
   --ocean: #0098a6;
-  --navy: #1a2f4a;
+  --ocean-dark: #007a85;
+  --ocean-soft: #e6f5f7;
+  --navy: #14263c;
   --yellow: #f9c74f;
-  --text: #1a2f4a;
-  --text-light: #5a7a8a;
-  --white: #ffffff;
+  --blue: #2563eb;
+  --text: #14263c;
+  --text-light: #64818f;
+  --line: #e4ecf0;
+  --danger: #c0392b;
+
+  /*one shadow scale instead of ad-hoc values, keeps depth consistent*/
+  --shadow-sm: 0 1px 2px rgba(20, 38, 60, 0.06);
+  --shadow-md: 0 4px 12px rgba(20, 38, 60, 0.08);
+  --shadow-lg: 0 12px 28px rgba(20, 38, 60, 0.12);
+
+  --radius: 14px;
+  --radius-sm: 10px;
 }
 
-/*every single element on page*/
 *{
   margin: 0;
   padding: 0;
@@ -17,117 +29,528 @@
 
 body{
   background-color: var(--bg);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--text);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;/*thinner, cleaner text on mac*/
 }
 
 #root{
-  max-width: 680px;
-  margin: 0 auto;/*center*/
-  padding: 40px 24px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+/* ---------- header ---------- */
+
+.app-head{
+  margin-bottom: 20px;
+}
+
+.brand{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark{
+  font-size: 26px;
+  line-height: 1;
+  background: var(--ocean-soft);
+  border-radius: 12px;
+  padding: 10px;
 }
 
 h1 {
-  font-size: 36px;
-  color: var(--ocean);
-  margin-bottom: 24px;
-}
-
-input {
-  width: 100%;
-  padding: 12px 16px;
-  font-size: 16px;
-  border: 2px solid var(--ocean);
-  border-radius: 8px;
-  background-color: var(--white);
-  color: var(--text);
-}
-
-button {
-  padding: 12px 32px;
-  font-size: 16px;
-  font-weight: bold;
-  background-color: var(--ocean);
-  color: var(--white);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.search-row{
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.arrival-card{
-  background-color: var(--white);
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
-  border-left: 4px solid var(--ocean);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: flex;/*side by side*/
-  align-items: center;
-  gap: 16px;
-}
-
-.arrival-card .route {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 26px;
+  font-weight: 700;
   color: var(--navy);
-  margin-bottom: 4px;
+  letter-spacing: -0.6px;
+  line-height: 1.15;
 }
 
-.arrival-card .time{
+.subtitle{
   font-size: 14px;
   color: var(--text-light);
 }
 
-.arrival-card:hover{
-  border-left: 4px solid var(--yellow);
+h2{
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.3px;
+}
+
+/* ---------- stop picker ---------- */
+
+.picker{
+  position: relative;/*anchor for the dropdown*/
+  margin-bottom: 18px;
+  z-index: 1200;/*leaflets zoom buttons also sit at 1000, and the map comes later
+                  in the dom, so without this they punch through the dropdown*/
+}
+
+.search-row{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 14px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-row:focus-within{
+  border-color: var(--ocean);
+  box-shadow: 0 0 0 3px var(--ocean-soft);
+}
+
+.search-icon{
+  font-size: 20px;
+  color: var(--text-light);
+  line-height: 1;
+}
+
+input {
+  flex: 1;
+  padding: 14px 0;
+  font-size: 15px;
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+
+input:focus{
+  outline: none;
+}
+
+button {
+  font-family: inherit;
   cursor: pointer;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+.clear{
+  font-size: 22px;
+  color: var(--text-light);
+  line-height: 1;
+  padding: 0 2px;
+}
+
+/*search results, floats over the map so it doesnt shove the page around*/
+.dropdown{
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.dropdown li + li{
+  border-top: 1px solid var(--line);
+}
+
+.dropdown button{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.dropdown button:hover{
+  background: var(--ocean-soft);
+}
+
+.stop-name{
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.stop-num{
+  font-size: 12px;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.dropdown-empty{
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+/* ---------- nearby chips ---------- */
+
+.nearby{
+  margin-top: 14px;
+}
+
+.nearby-label{
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+
+.chips{
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;/*scroll sideways instead of wrapping into a tall block*/
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.chip{
+  flex: 0 0 auto;
+  max-width: 190px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.chip:hover{
+  border-color: var(--ocean);
+  transform: translateY(-1px);
+}
+
+.chip-on{
+  border-color: var(--ocean);
+  background: var(--ocean-soft);
+}
+
+.chip-name{
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;/*long stop names get cut with ... instead of wrapping*/
+}
+
+.chip-dist{
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+/* ---------- map panel ---------- */
+
+.panel{
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.map-wrap{
+  margin-bottom: 10px;
+}
+
+/*leaflet needs a real height or the map collapses to nothing and looks blank*/
+.map{
+  height: 310px;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  background: #eef2f4;
+}
+
+.legend{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 2px 6px 4px;
+  font-size: 12px;
+}
+
+.legend-item{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+/*the little swatches that explain what each map marker means*/
+.dot{
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.dot-you{
+  background-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--blue);
+}
+
+.dot-stop{
+  background-color: var(--surface);
+  border: 3px solid var(--navy);
+}
+
+.dot-bus{
+  background-color: var(--yellow);
+  border: 1.5px solid var(--navy);
+  border-radius: 3px;
+}
+
+.dot-line{
+  background-color: var(--ocean);
+  border-radius: 2px;
+  height: 4px;
+  width: 16px;
+}
+
+/*the route-number badge sitting on each bus location*/
+.bus-pin{
+  background-color: var(--yellow);
+  color: var(--navy);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  height: 24px;
+  text-align: center;
+  border-radius: 6px;
+  border: 2px solid var(--navy);
+  box-shadow: var(--shadow-md);
+}
+
+/*the bus you picked from the list, so you can spot it among the others*/
+.bus-pin-on{
+  background-color: var(--navy);
+  color: var(--yellow);
+  transform: scale(1.15);
+}
+
+/*the stop marker: a ring, deliberately not shaped like a bus badge*/
+.stop-pin{
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 4px solid var(--navy);
+  box-shadow: var(--shadow-md);
+}
+
+.popup-note{
+  color: #4a5b6b;
+}
+
+.leaflet-popup-content-wrapper{
+  border-radius: var(--radius-sm);
+}
+
+.leaflet-container{
+  font-family: 'Inter', sans-serif;
+}
+
+/* ---------- results ---------- */
+
+.results-head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stop-sub{
+  font-size: 13px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+.updated{
+  font-size: 11px;
+  color: var(--text-light);
+  text-align: right;
+  line-height: 1.5;
+  flex: 0 0 auto;
+}
+
+.muted{
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.alert{
+  font-size: 14px;
+  color: var(--danger);
+  background: #fdecea;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.geo-note{
+  font-size: 13px;
+  color: var(--text-light);
+  margin: -8px 0 18px;
+  padding: 0 2px;
+}
+
+.empty-state{
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.empty-title{
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+/* ---------- arrival cards ---------- */
+
+.arrival-card{
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.arrival-card:hover{
+  border-color: var(--ocean);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/*the card you clicked, matches the highlighted pin on the map*/
+.arrival-card.is-selected{
+  border-color: var(--ocean);
+  background: var(--ocean-soft);
+}
+
+/*no gps, so theres nothing to click through to. dont pretend otherwise*/
+.arrival-card.is-untracked{
+  cursor: default;
+  background: #fbfcfd;
+}
+
+.arrival-card.is-untracked:hover{
+  transform: none;
+  box-shadow: var(--shadow-sm);
+  border-color: var(--line);
 }
 
 .route-badge{
   background-color: var(--ocean);
-  color: var(--white);
-  font-size: 18px;
-  font-weight: bold;
-  padding: 8px 12px;
-  border-radius: 8px;
-  min-width: 56px;
+  color: var(--surface);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  min-width: 52px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.is-untracked .route-badge{
+  background-color: #9fb4bf;/*muted, signals "no live data" without extra words*/
 }
 
 .arrival-info{
   flex: 1;
+  min-width: 0;/*lets long destination names shrink instead of overflowing*/
 }
 
 .headsign{
-  font-size: 15px;
-  font-weight: bold;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--navy);
-}
-
-.arrival-time{
-  font-size: 20px;
-  font-weight: bold;
-  color: var(--ocean);
+  margin-bottom: 2px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-button:hover{
-  background-color: var(--navy);
-  transition: background-color 0.2s ease;
-}
-
-.subtitle{
-  font-size: 16px;
+.meta{
+  font-size: 12px;
   color: var(--text-light);
-  margin-bottom: 32px;
+}
+
+/*stacked: big minutes on top, clock time underneath as the backup detail*/
+.arrival-time{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.mins{
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;/*digits keep the same width so rows dont jitter*/
+  letter-spacing: -0.4px;
+}
+
+/*about to leave, worth shouting about*/
+.mins-soon{
+  color: var(--ocean);
+}
+
+.clock{
+  font-size: 11px;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 520px){
+  #root{
+    padding: 20px 14px 48px;
+  }
+
+  h1{
+    font-size: 22px;
+  }
+
+  .map{
+    height: 260px;
+  }
 }
