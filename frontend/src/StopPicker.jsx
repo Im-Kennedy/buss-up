@@ -1,42 +1,32 @@
 import { useState, useEffect, useRef } from "react";
 import { API } from "./api.js";
+import { walkTime } from "./arrivals.js";
 
-//walking distance reads better than raw meters
-function walkTime(meters) {
-    const mins = Math.round(meters / 80);//~80 m/min is a normal walking pace
-    if (mins <= 1) return "1 min walk";
-    return `${mins} min walk`;
-}
-
-function StopPicker({ position, activeStop, onPick }) {
+function StopPicker({ nearby = [], centerLabel, activeStop, onPickStop, onPickPlace }) {
     const [query, setQuery] = useState("");
-    const [results, setResults] = useState([]);
-    const [nearby, setNearby] = useState([]);
+    const [stops, setStops] = useState([]);
+    const [places, setPlaces] = useState([]);
     const [open, setOpen] = useState(false);
     const boxRef = useRef(null);
 
-    //as soon as we know where the user is, ask the backend whats close by.
-    //this is the bit that means you dont have to know any stop numbers
-    useEffect(() => {
-        if (!position) return;
-
-        fetch(`${API}/stops/near?lat=${position[0]}&lon=${position[1]}&limit=6`)
-            .then((r) => r.json())
-            .then((d) => setNearby(d.stops || []))
-            .catch(() => setNearby([]));
-    }, [position]);
-
-    //search as you type, but wait for a pause so we dont fire a request per keystroke
+    //search as you type, but wait for a pause so we dont fire a request per keystroke.
+    //two lookups run side by side: stop names from our own gtfs data, and street
+    //or landmark names from openstreetmap
     useEffect(() => {
         const text = query.trim();
-        if (!text) return;//empty box is handled by `visible` below, no state to clear
+        if (!text) return;//empty box is handled by the `visible` vars below
 
         const timer = setTimeout(() => {
-            fetch(`${API}/stops/search?q=${encodeURIComponent(text)}&limit=8`)
+            fetch(`${API}/stops/search?q=${encodeURIComponent(text)}&limit=6`)
                 .then((r) => r.json())
-                .then((d) => setResults(d.stops || []))
-                .catch(() => setResults([]));
-        }, 250);
+                .then((d) => setStops(d.stops || []))
+                .catch(() => setStops([]));
+
+            fetch(`${API}/geocode?q=${encodeURIComponent(text)}&limit=3`)
+                .then((r) => r.json())
+                .then((d) => setPlaces(d.places || []))
+                .catch(() => setPlaces([]));
+        }, 350);
 
         return () => clearTimeout(timer);//cancels the pending search if you keep typing
     }, [query]);
@@ -52,10 +42,18 @@ function StopPicker({ position, activeStop, onPick }) {
     }, []);
 
     //derived instead of stored, so clearing the box cant leave stale hits on screen
-    const visible = query.trim() ? results : [];
+    const typing = query.trim();
+    const visibleStops = typing ? stops : [];
+    const visiblePlaces = typing ? places : [];
 
-    const choose = (stop) => {
-        onPick(stop);
+    const chooseStop = (stop) => {
+        onPickStop(stop);
+        setQuery("");
+        setOpen(false);
+    };
+
+    const choosePlace = (place) => {
+        onPickPlace(place);
         setQuery("");
         setOpen(false);
     };
@@ -66,7 +64,7 @@ function StopPicker({ position, activeStop, onPick }) {
                 <span className="search-icon" aria-hidden="true">⌕</span>
                 <input
                     type="text"
-                    placeholder="Search a stop name or number..."
+                    placeholder="Search a stop, street or place..."
                     value={query}
                     onChange={(e) => {
                         setQuery(e.target.value);
@@ -79,30 +77,57 @@ function StopPicker({ position, activeStop, onPick }) {
                 )}
             </div>
 
-            {open && query.trim() && (
-                <ul className="dropdown">
-                    {visible.length === 0 && <li className="dropdown-empty">No stops match that</li>}
-                    {visible.map((stop) => (
-                        <li key={stop.id}>
-                            <button onClick={() => choose(stop)}>
-                                <span className="stop-name">{stop.name}</span>
-                                <span className="stop-num">#{stop.id}</span>
-                            </button>
-                        </li>
-                    ))}
-                </ul>
+            {open && typing && (
+                <div className="dropdown">
+                    {visibleStops.length === 0 && visiblePlaces.length === 0 && (
+                        <p className="dropdown-empty">Nothing found. Try a street name.</p>
+                    )}
+
+                    {visibleStops.length > 0 && (
+                        <>
+                            <p className="dropdown-head">Bus stops</p>
+                            <ul>
+                                {visibleStops.map((stop) => (
+                                    <li key={stop.id}>
+                                        <button onClick={() => chooseStop(stop)}>
+                                            <span className="stop-name">{stop.name}</span>
+                                            <span className="stop-num">#{stop.id}</span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
+
+                    {/*streets and landmarks. picking one doesnt pick a stop, it moves
+                       the "near you" list over there so you can see whats around it*/}
+                    {visiblePlaces.length > 0 && (
+                        <>
+                            <p className="dropdown-head">Places</p>
+                            <ul>
+                                {visiblePlaces.map((place) => (
+                                    <li key={`${place.lat},${place.lon}`}>
+                                        <button onClick={() => choosePlace(place)}>
+                                            <span className="stop-name">{place.name}</span>
+                                            <span className="stop-num">{place.detail}</span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
+                </div>
             )}
 
-            {/*quick pick row, only useful once the browser has told us where we are*/}
             {nearby.length > 0 && (
                 <div className="nearby">
-                    <span className="nearby-label">Near you</span>
+                    <span className="nearby-label">Near {centerLabel}</span>
                     <div className="chips">
                         {nearby.map((stop) => (
                             <button
                                 key={stop.id}
                                 className={"chip" + (String(stop.id) === String(activeStop) ? " chip-on" : "")}
-                                onClick={() => choose(stop)}
+                                onClick={() => chooseStop(stop)}
                                 title={`${stop.name} · stop ${stop.id}`}
                             >
                                 <span className="chip-name">{stop.name}</span>

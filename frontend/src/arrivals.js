@@ -59,6 +59,13 @@ export function upcomingSegment(points, busLat, busLon, stopLat, stopLon) {
     return null;
 }
 
+//distance means more as "how long will this take me"
+export function walkTime(meters) {
+    const mins = Math.round(meters / 80);//~80 m/min is a normal walking pace
+    if (mins <= 1) return "1 min walk";
+    return `${mins} min walk`;
+}
+
 //"107 min" is hard to read at a glance, "1h 47m" isnt
 export function formatWait(mins) {
     if (mins === null) return null;

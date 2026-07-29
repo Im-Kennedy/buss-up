@@ -134,6 +134,66 @@ def stops_search(q: str, limit: int = 10):
     return {"stops": hits}
 
 
+#place lookups get cached forever. street names dont move, and nominatim asks
+#you not to hammer them
+GEOCODE_CACHE = {}
+
+#roughly a box around oahu: left, top, right, bottom (lon/lat pairs).
+#keeps "king street" pointing at honolulu instead of somewhere on the mainland
+OAHU_VIEWBOX = "-158.32,21.75,-157.60,21.20"
+
+
+@app.get("/geocode")#/geocode?q=bannister street
+async def geocode(q: str, limit: int = 4):
+    """turns a street or place name into coordinates, so you can look up stops
+       somewhere youre not standing. uses openstreetmaps free nominatim service"""
+    key = q.strip().lower()
+
+    if not key:
+        return {"places": []}
+
+    if key in GEOCODE_CACHE:
+        return GEOCODE_CACHE[key]
+
+    params = {
+        "q": q,
+        "format": "jsonv2",
+        "limit": limit,
+        "viewbox": OAHU_VIEWBOX,
+        "bounded": 1,#throw away anything outside the box entirely
+    }
+
+    #nominatims usage policy requires identifying the app
+    headers = {"User-Agent": "buss-up/1.0 (oahu bus arrivals)"}
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params=params,
+                headers=headers,
+            )
+        raw = response.json()
+    except Exception:
+        return {"places": []}#geocoding is a nice-to-have, never break search over it
+
+    places = []
+    for hit in raw:
+        try:
+            places.append({
+                "name": hit["display_name"].split(",")[0],
+                "detail": ", ".join(hit["display_name"].split(",")[1:3]).strip(),
+                "lat": float(hit["lat"]),
+                "lon": float(hit["lon"]),
+            })
+        except (KeyError, ValueError):
+            continue
+
+    payload = {"places": places}
+    GEOCODE_CACHE[key] = payload
+    return payload
+
+
 @app.get("/shape/{shape_id}")
 def shape(shape_id: str):
     """the actual path a bus drives, so we can draw it on the map"""

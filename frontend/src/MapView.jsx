@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup } from "react-leaflet";
 import { useEffect, useRef } from "react";
 import L from "leaflet";//the raw leaflet library, needed to build our own icons
-import { minutesAway, isTracked, upcomingSegment } from "./arrivals.js";
+import { minutesAway, isTracked, upcomingSegment, walkTime } from "./arrivals.js";
 
 //builds a little badge with the route number inside it.
 //divIcon means the marker is just html, so we skip leaflets broken image icons
@@ -24,7 +24,7 @@ function stopIcon() {
     });
 }
 
-function MapView({ position, arrivals = [], selectedId, stop, shape }) {
+function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = [], center, centerKey, onPickStop }) {
     //honolulu, used as the starting view before we know where the user is
     const fallback = [21.3069, -157.8583];
 
@@ -38,13 +38,17 @@ function MapView({ position, arrivals = [], selectedId, stop, shape }) {
 
     const stopPoint = stop?.stopLat && stop?.stopLon ? [stop.stopLat, stop.stopLon] : null;
 
-    //slide over to the user the first time their location arrives
+    //move to whatever were centred on: your gps fix the first time it arrives,
+    //or a street you searched. centerKey changes only when the place really
+    //changes, so panning around doesnt get yanked back
     useEffect(() => {
-        if (position && mapRef.current && !centeredOnUser.current) {
-            mapRef.current.setView(position, 15);//15 = zoom level, higher is closer
-            centeredOnUser.current = true;
-        }
-    }, [position]);
+        if (!center || !mapRef.current) return;
+        if (centerKey === "gps" && centeredOnUser.current) return;//only auto-follow gps once
+
+        mapRef.current.setView(center, 15);//15 = zoom level, higher is closer
+        if (centerKey === "gps") centeredOnUser.current = true;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [centerKey]);
 
     //when a stop gets picked, frame it
     useEffect(() => {
@@ -124,6 +128,29 @@ function MapView({ position, arrivals = [], selectedId, stop, shape }) {
                         <Popup>You are here</Popup>
                     </CircleMarker>
                 )}
+
+                {/*the other stops around you. small hollow rings so they read as
+                   "options" next to the solid marker for the stop youve picked.
+                   tapping one switches to it, same as tapping the chip up top*/}
+                {nearby
+                    .filter((s) => String(s.id) !== String(stop?.stop))
+                    .map((s) => (
+                        <CircleMarker
+                            key={`near-${s.id}`}
+                            center={[s.lat, s.lon]}
+                            radius={5}
+                            pathOptions={{ color: "#14263c", weight: 2, fillColor: "#ffffff", fillOpacity: 1 }}
+                            eventHandlers={{ click: () => onPickStop?.(s) }}
+                        >
+                            <Popup>
+                                <strong>{s.name}</strong>
+                                <br />
+                                Stop #{s.id} · {walkTime(s.meters)}
+                                <br />
+                                <span className="popup-note">Tap the ring to see arrivals</span>
+                            </Popup>
+                        </CircleMarker>
+                    ))}
 
                 {/*where youre actually waiting*/}
                 {stopPoint && (

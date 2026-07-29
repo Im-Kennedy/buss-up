@@ -21,11 +21,24 @@ function App() {
     )//separate from error so a denied map doesnt hide arrivals
     const [updatedAt, setUpdatedAt] = useState(null)//when we last heard from the backend
     const [selectedId, setSelectedId] = useState(null)//which bus the user clicked in the list
+    const [place, setPlace] = useState(null)//a street/landmark searched instead of using gps
+    const [nearby, setNearby] = useState([])//stops around whichever point were centred on
     //stored with the id it belongs to, so we can tell whether it matches the
     //currently selected bus instead of clearing it in an effect
     const [shapeCache, setShapeCache] = useState({ id: null, points: null })
 
     const activeStop = stop?.id || null
+
+    //a searched place wins over gps, so you can look up stops anywhere on oahu
+    //even if youre not on the island. derived, not stored, so theres no effect
+    //fighting to keep two bits of state in sync
+    const center = place ? [place.lat, place.lon] : position
+    const centerLabel = place ? place.name : "you"
+    const centerKey = place ? `place:${place.lat},${place.lon}` : position ? "gps" : ""
+
+    //pulled out as plain numbers so the effect below has simple, checkable deps
+    const centerLat = center ? center[0] : null
+    const centerLon = center ? center[1] : null
 
     //runs once when the page first loads. [] at the bottom means "only once"
     useEffect(() => {
@@ -45,6 +58,22 @@ function App() {
             }
         )
     }, [])
+
+    //stops around the current centre, whether thats your gps fix or a searched
+    //street. these show as chips up top AND as rings on the map
+    useEffect(() => {
+        if (centerLat === null || centerLon === null) return
+
+        let cancelled = false
+
+        fetch(`${API}/stops/near?lat=${centerLat}&lon=${centerLon}&limit=6`)
+            .then((r) => r.json())
+            .then((d) => { if (!cancelled) setNearby(d.stops || []) })
+            .catch(() => { if (!cancelled) setNearby([]) })
+
+        return () => { cancelled = true }
+        //primitives, not the array, or this refires on every render
+    }, [centerLat, centerLon])
 
     //re-runs whenever the chosen stop changes. also sets up the 30s timer
     useEffect(() => {
@@ -131,9 +160,24 @@ function App() {
                 </div>
             </header>
 
-            <StopPicker position={position} activeStop={activeStop} onPick={pickStop} />
+            <StopPicker
+                nearby={nearby}
+                centerLabel={centerLabel}
+                activeStop={activeStop}
+                onPickStop={pickStop}
+                onPickPlace={setPlace}
+            />
 
-            {!position && geoError && <p className="geo-note">{geoError}</p>}
+            {place && (
+                <p className="geo-note">
+                    Showing stops near {place.name}.{" "}
+                    <button className="link" onClick={() => setPlace(null)}>
+                        {position ? "Back to my location" : "Clear"}
+                    </button>
+                </p>
+            )}
+
+            {!position && !place && geoError && <p className="geo-note">{geoError}</p>}
 
             {/*map sits under the search box. shows oahu until a stop is picked*/}
             <section className="panel">
@@ -143,6 +187,10 @@ function App() {
                     selectedId={selectedId}
                     stop={stopInfo}
                     shape={shape}
+                    nearby={nearby}
+                    center={center}
+                    centerKey={centerKey}
+                    onPickStop={pickStop}
                 />
 
                 <div className="legend">
