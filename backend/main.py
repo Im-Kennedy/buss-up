@@ -19,8 +19,11 @@ app = FastAPI() #creates fastapi. this app objet is wha teverything is attache t
 #which frontends are allowed to call us. locally thats vite on 5173, in production
 #its the deployed site, set as ALLOWED_ORIGINS (comma separated) on the host.
 #browsers block the request entirely if the origin isnt on this list
+#rstrip("/") because browsers send the origin with no trailing slash, and cors
+#matching is an exact string compare. pasting the url straight from the address
+#bar gives you "https://site.com/", which silently matches nothing
 ALLOWED_ORIGINS = [
-    origin.strip()
+    origin.strip().rstrip("/")
     for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
     if origin.strip()
 ]
