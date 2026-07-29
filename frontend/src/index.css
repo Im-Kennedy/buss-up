@@ -391,12 +391,54 @@ button {
   box-shadow: var(--shadow-md);
 }
 
-.popup-note{
-  color: #4a5b6b;
-}
+/* ---------- map popups ---------- */
 
+/*leaflets default padding is generous, which eats a phone screen*/
 .leaflet-popup-content-wrapper{
   border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.leaflet-popup-content{
+  margin: 9px 11px;
+  line-height: 1.4;
+}
+
+.pop-top{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+
+.pop-route{
+  background: var(--ocean);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.pop-mins{
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.pop-head{
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.pop-sub{
+  display: block;
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 1px;
 }
 
 .leaflet-container{
@@ -566,6 +608,25 @@ button {
   font-size: 11px;
   color: var(--text-light);
   font-variant-numeric: tabular-nums;
+}
+
+/*"show N more" / "show fewer" under the arrival list*/
+.more{
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ocean);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s ease;
+}
+
+.more:hover{
+  border-color: var(--ocean);
 }
 
 /* ---------- small screens ---------- */

@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup } from "react-leaflet";
 import { useEffect, useRef } from "react";
 import L from "leaflet";//the raw leaflet library, needed to build our own icons
-import { minutesAway, isTracked, upcomingSegment, walkTime } from "./arrivals.js";
+import { minutesAway, isTracked, upcomingSegment, walkTime, formatWait } from "./arrivals.js";
 
 //builds a little badge with the route number inside it.
 //divIcon means the marker is just html, so we skip leaflets broken image icons
@@ -142,12 +142,9 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                             pathOptions={{ color: "#14263c", weight: 2, fillColor: "#ffffff", fillOpacity: 1 }}
                             eventHandlers={{ click: () => onPickStop?.(s) }}
                         >
-                            <Popup>
-                                <strong>{s.name}</strong>
-                                <br />
-                                Stop #{s.id} · {walkTime(s.meters)}
-                                <br />
-                                <span className="popup-note">Tap the ring to see arrivals</span>
+                            <Popup maxWidth={200} minWidth={120}>
+                                <span className="pop-head">{s.name}</span>
+                                <span className="pop-sub">#{s.id} · {walkTime(s.meters)}</span>
                             </Popup>
                         </CircleMarker>
                     ))}
@@ -155,10 +152,9 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                 {/*where youre actually waiting*/}
                 {stopPoint && (
                     <Marker position={stopPoint} icon={stopIcon()}>
-                        <Popup>
-                            <strong>{stop.stopName || `Stop ${stop.stop}`}</strong>
-                            <br />
-                            Stop #{stop.stop}
+                        <Popup maxWidth={200} minWidth={120}>
+                            <span className="pop-head">{stop.stopName || `Stop ${stop.stop}`}</span>
+                            <span className="pop-sub">Your stop · #{stop.stop}</span>
                         </Popup>
                     </Marker>
                 )}
@@ -176,17 +172,18 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                                 if (m) markerRefs.current[bus.id] = m;
                             }}
                         >
-                            <Popup>
-                                <strong>Route {bus.route}</strong>
-                                <br />
-                                Toward {bus.headsign}
-                                <br />
-                                {/*this is the bit that was confusing before: the pin is where the
-                                   bus is NOW, the time is when it reaches the stop you picked*/}
-                                <span className="popup-note">
-                                    Bus is here now · reaches {stop?.stopName || `stop ${stop?.stop}`} at {bus.stopTime}
-                                    {mins !== null && mins > 0 ? ` (${mins} min)` : ""}
+                            {/*kept deliberately short. the stop name is already the
+                               heading under the map, and repeating it here made the
+                               bubble swallow half a phone screen*/}
+                            <Popup maxWidth={200} minWidth={120}>
+                                <span className="pop-top">
+                                    <span className="pop-route">{bus.route}</span>
+                                    <span className="pop-mins">{formatWait(mins) ?? bus.stopTime}</span>
                                 </span>
+                                <span className="pop-head">{bus.headsign}</span>
+                                {/*the pin is where the bus is NOW, the time is when it
+                                   reaches the stop you picked*/}
+                                <span className="pop-sub">Here now · arrives {bus.stopTime}</span>
                             </Popup>
                         </Marker>
                     );

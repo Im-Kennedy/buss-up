@@ -6,6 +6,7 @@ import { minutesAway, isTracked, formatWait } from "./arrivals.js";
 import { API } from "./api.js";
 
 const REFRESH_MS = 30000;//re-ask the backend every 30 seconds
+const SHOW_AT_FIRST = 6;//thebus returns ~25 arrivals, hours out. nobody scrolls that
 
 function App() {
     const [stop, setStop] = useState(null)//the whole stop object now, not just a number
@@ -23,6 +24,7 @@ function App() {
     const [selectedId, setSelectedId] = useState(null)//which bus the user clicked in the list
     const [place, setPlace] = useState(null)//a street/landmark searched instead of using gps
     const [nearby, setNearby] = useState([])//stops around whichever point were centred on
+    const [showAll, setShowAll] = useState(false)//expand past the first handful of arrivals
     //stored with the id it belongs to, so we can tell whether it matches the
     //currently selected bus instead of clearing it in an effect
     const [shapeCache, setShapeCache] = useState({ id: null, points: null })
@@ -114,6 +116,15 @@ function App() {
     const selected = arrivals.find((a) => a.id === selectedId) || null
     const trackedCount = arrivals.filter(isTracked).length
 
+    //show the next few by default. if you tapped a bus on the map thats further
+    //down the list, stretch the cut-off far enough to include it, otherwise its
+    //card would be hidden and the highlight would look broken
+    const selectedIndex = arrivals.findIndex((a) => a.id === selectedId)
+    const baseLimit = showAll ? arrivals.length : SHOW_AT_FIRST
+    const limit = selectedIndex >= baseLimit ? selectedIndex + 1 : baseLimit
+    const visibleArrivals = arrivals.slice(0, limit)
+    const hiddenCount = arrivals.length - visibleArrivals.length
+
     //once a bus passes the stop it drops out of the feed. `selected` goes null on
     //its own then, so the highlight and the route line both disappear by themselves
 
@@ -142,6 +153,7 @@ function App() {
 
     const pickStop = (next) => {
         setSelectedId(null)//clear any highlighted bus from the last stop
+        setShowAll(false)//a new stop starts collapsed again
         setArrivals([])
         setStop(next)
         setReloadKey((n) => n + 1)//makes picking the same stop twice actually refetch
@@ -241,7 +253,7 @@ function App() {
             )}
 
             {/*loop through arrivals and show each*/}
-            {arrivals.map((arrival) => {
+            {visibleArrivals.map((arrival) => {
                 const mins = minutesAway(arrival)
                 const tracked = isTracked(arrival)
 
@@ -279,6 +291,19 @@ function App() {
                     </div>
                 )
             })}
+
+            {/*the rest are usually an hour or more out, so theyre behind a tap*/}
+            {hiddenCount > 0 && (
+                <button className="more" onClick={() => setShowAll(true)}>
+                    Show {hiddenCount} more {hiddenCount === 1 ? "arrival" : "arrivals"}
+                </button>
+            )}
+
+            {showAll && arrivals.length > SHOW_AT_FIRST && (
+                <button className="more" onClick={() => setShowAll(false)}>
+                    Show fewer
+                </button>
+            )}
         </div>
     )
 }
