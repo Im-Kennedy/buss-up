@@ -74,7 +74,9 @@ CACHE_SECONDS = 15
 
 
 #first endpoint to test
-@app.get("/")#decorater, tells fastapi to run this when someone does a get request
+#HEAD as well as GET: renders health check and most uptime pingers send HEAD,
+#and a GET-only route answers those with 405, which reads as "service is broken"
+@app.api_route("/", methods=["GET", "HEAD"])#decorater, tells fastapi to run this when someone does a get request
 def home():#function runs when url is called
     return {
         "mesasage": "Buss Up API is running!",#fastpi converste this python dict to JSON
