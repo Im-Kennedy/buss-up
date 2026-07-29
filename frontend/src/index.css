@@ -1,24 +1,54 @@
 :root {
-  --bg: #f4f7f9;
+  /*light theme. one palette, referenced everywhere, so retheming is a single edit*/
+  --bg: #f5f7f9;
+  --bg-tint: #e9f4f6;/*soft wash behind the header*/
   --surface: #ffffff;
-  --ocean: #0098a6;
-  --ocean-dark: #007a85;
-  --ocean-soft: #e6f5f7;
-  --navy: #14263c;
-  --yellow: #f9c74f;
-  --blue: #2563eb;
-  --text: #14263c;
-  --text-light: #64818f;
-  --line: #e4ecf0;
-  --danger: #c0392b;
+  --surface-2: #f1f5f7;
+  --ink: #0e1c2b;
+  --ink-2: #35566d;
+  --muted: #6a8496;
+  --brand: #00a0ae;
+  --brand-ink: #007a86;
+  --brand-tint: #e3f5f7;
+  --accent: #f6b93b;
+  --live: #16a34a;
+  --danger: #d64545;
+  --line: rgba(14, 28, 43, 0.09);
+  --line-strong: rgba(14, 28, 43, 0.16);
 
-  /*one shadow scale instead of ad-hoc values, keeps depth consistent*/
-  --shadow-sm: 0 1px 2px rgba(20, 38, 60, 0.06);
-  --shadow-md: 0 4px 12px rgba(20, 38, 60, 0.08);
-  --shadow-lg: 0 12px 28px rgba(20, 38, 60, 0.12);
+  --shadow-sm: 0 1px 2px rgba(14, 28, 43, 0.05);
+  --shadow-md: 0 4px 16px rgba(14, 28, 43, 0.07);
+  --shadow-lg: 0 16px 40px rgba(14, 28, 43, 0.14);
 
-  --radius: 14px;
-  --radius-sm: 10px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-full: 999px;
+}
+
+/*follows the phones system setting. no toggle needed, it just matches*/
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a1017;
+    --bg-tint: #0e1a22;
+    --surface: #131e28;
+    --surface-2: #1a2836;
+    --ink: #e9f1f6;
+    --ink-2: #b6cbd8;
+    --muted: #7d99ab;
+    --brand: #2ec4d3;
+    --brand-ink: #7fdde7;
+    --brand-tint: rgba(46, 196, 211, 0.13);
+    --accent: #f6c65b;
+    --live: #34d399;
+    --danger: #f87171;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  }
 }
 
 *{
@@ -28,106 +58,23 @@
 }
 
 body{
-  background-color: var(--bg);
+  background: var(--bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--text);
+  color: var(--ink);
   min-height: 100vh;
-  -webkit-font-smoothing: antialiased;/*thinner, cleaner text on mac*/
+  -webkit-font-smoothing: antialiased;
+  /*soft wash at the top so the header doesnt sit on flat grey*/
+  background-image: linear-gradient(180deg, var(--bg-tint) 0%, var(--bg) 320px);
+  background-repeat: no-repeat;
 }
 
 #root{
-  max-width: 640px;
+  max-width: 620px;
   margin: 0 auto;
-  padding: 32px 20px 64px;
+  padding: 0 18px 80px;
 }
 
-/* ---------- header ---------- */
-
-.app-head{
-  margin-bottom: 20px;
-}
-
-.brand{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand-mark{
-  font-size: 26px;
-  line-height: 1;
-  background: var(--ocean-soft);
-  border-radius: 12px;
-  padding: 10px;
-}
-
-h1 {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--navy);
-  letter-spacing: -0.6px;
-  line-height: 1.15;
-}
-
-.subtitle{
-  font-size: 14px;
-  color: var(--text-light);
-}
-
-h2{
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--navy);
-  letter-spacing: -0.3px;
-}
-
-/* ---------- stop picker ---------- */
-
-.picker{
-  position: relative;/*anchor for the dropdown*/
-  margin-bottom: 18px;
-  z-index: 1200;/*leaflets zoom buttons also sit at 1000, and the map comes later
-                  in the dom, so without this they punch through the dropdown*/
-}
-
-.search-row{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 0 14px;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.search-row:focus-within{
-  border-color: var(--ocean);
-  box-shadow: 0 0 0 3px var(--ocean-soft);
-}
-
-.search-icon{
-  font-size: 20px;
-  color: var(--text-light);
-  line-height: 1;
-}
-
-input {
-  flex: 1;
-  padding: 14px 0;
-  font-size: 15px;
-  font-family: inherit;
-  border: none;
-  background: transparent;
-  color: var(--text);
-}
-
-input:focus{
-  outline: none;
-}
-
-button {
+button{
   font-family: inherit;
   cursor: pointer;
   border: none;
@@ -135,32 +82,183 @@ button {
   color: inherit;
 }
 
-.clear{
-  font-size: 22px;
-  color: var(--text-light);
-  line-height: 1;
-  padding: 0 2px;
+/* ---------- sticky header ---------- */
+
+/*stays put while you scroll the list, frosted so content reads through it*/
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 1300;
+  margin: 0 -18px;
+  padding: 14px 18px 10px;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
 }
 
-/*search results, floats over the map so it doesnt shove the page around*/
+.topbar.is-stuck{
+  border-bottom-color: var(--line);
+}
+
+.topbar-inner{
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.brand-mark{
+  font-size: 20px;
+  line-height: 1;
+  padding: 9px;
+  border-radius: var(--r-sm);
+  background: var(--brand-tint);
+}
+
+.brand-text{
+  flex: 1;
+  min-width: 0;
+}
+
+h1 {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.subtitle{
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+h2{
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  line-height: 1.25;
+}
+
+/*little green "were polling" badge*/
+.live-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--live);
+  background: color-mix(in srgb, var(--live) 12%, transparent);
+  padding: 5px 10px;
+  border-radius: var(--r-full);
+  flex: 0 0 auto;
+}
+
+.live-dot{
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--live);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse{
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+/*respects "reduce motion" in accessibility settings*/
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- stop picker ---------- */
+
+.picker{
+  position: relative;
+  z-index: 1200;
+  margin-bottom: 16px;
+}
+
+.search-row{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  padding: 0 16px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.search-row:focus-within{
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-tint);
+}
+
+.search-icon{
+  font-size: 19px;
+  color: var(--muted);
+  line-height: 1;
+}
+
+input {
+  flex: 1;
+  padding: 13px 0;
+  font-size: 15px;
+  font-family: inherit;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  min-width: 0;
+}
+
+input::placeholder{ color: var(--muted); }
+input:focus{ outline: none; }
+
+.clear{
+  font-size: 20px;
+  color: var(--muted);
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
 .dropdown{
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
   z-index: 1200;
-  list-style: none;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  max-height: 320px;
-  overflow-y: auto;
+  overflow: hidden auto;
+  max-height: 330px;
 }
 
-.dropdown li + li{
-  border-top: 1px solid var(--line);
+.dropdown ul{ list-style: none; }
+
+.dropdown-head{
+  padding: 10px 16px 5px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .dropdown button{
@@ -169,154 +267,124 @@ button {
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 12px 14px;
+  padding: 11px 16px;
   text-align: left;
   font-size: 14px;
+  transition: background 0.12s ease;
 }
 
-.dropdown button:hover{
-  background: var(--ocean-soft);
-}
+.dropdown button:hover{ background: var(--surface-2); }
 
 .stop-name{
   font-weight: 600;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .stop-num{
   font-size: 12px;
-  color: var(--text-light);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
 }
 
 .dropdown-empty{
-  padding: 12px 14px;
+  padding: 14px 16px;
   font-size: 14px;
-  color: var(--text-light);
+  color: var(--muted);
 }
 
-.dropdown ul{
-  list-style: none;
-}
+/* ---------- nearby pills ---------- */
 
-/*section label separating bus stops from street/landmark results*/
-.dropdown-head{
-  padding: 9px 14px 5px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--text-light);
-  background: #fafcfd;
-  border-top: 1px solid var(--line);
-}
-
-.dropdown-head:first-child{
-  border-top: none;
-}
-
-/*inline text button, for things like "back to my location"*/
-.link{
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ocean);
-  text-decoration: underline;
-  padding: 0;
-}
-
-/* ---------- nearby chips ---------- */
-
-.nearby{
-  margin-top: 14px;
-}
+.nearby{ margin-top: 14px; }
 
 .nearby-label{
   display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
   text-transform: uppercase;
-  color: var(--text-light);
-  margin-bottom: 8px;
+  color: var(--muted);
+  margin-bottom: 9px;
 }
 
 .chips{
   display: flex;
   gap: 8px;
-  overflow-x: auto;/*scroll sideways instead of wrapping into a tall block*/
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+  overflow-x: auto;
+  padding-bottom: 3px;
+  scrollbar-width: none;/*the row scrolls, but the bar itself is visual noise*/
+  scroll-snap-type: x proximity;
 }
+
+.chips::-webkit-scrollbar{ display: none; }
 
 .chip{
   flex: 0 0 auto;
-  max-width: 190px;
+  max-width: 200px;
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 9px 12px;
+  border-radius: var(--r-md);
+  padding: 10px 14px;
   box-shadow: var(--shadow-sm);
+  scroll-snap-align: start;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-.chip:hover{
-  border-color: var(--ocean);
-  transform: translateY(-1px);
-}
+.chip:active{ transform: scale(0.97); }
+.chip:hover{ border-color: var(--line-strong); }
 
 .chip-on{
-  border-color: var(--ocean);
-  background: var(--ocean-soft);
+  border-color: var(--brand);
+  background: var(--brand-tint);
 }
 
 .chip-name{
   display: block;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--navy);
+  font-weight: 650;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;/*long stop names get cut with ... instead of wrapping*/
+  text-overflow: ellipsis;
 }
 
 .chip-dist{
   display: block;
   font-size: 11px;
-  color: var(--text-light);
+  color: var(--muted);
   margin-top: 2px;
 }
 
-/* ---------- map panel ---------- */
+/* ---------- map ---------- */
 
 .panel{
-  background-color: var(--surface);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 10px;
-  margin-bottom: 24px;
+  border-radius: var(--r-lg);
+  padding: 8px;
+  margin-bottom: 22px;
   box-shadow: var(--shadow-md);
+  overflow: hidden;
 }
 
-.map-wrap{
-  margin-bottom: 10px;
-}
+.map-wrap{ margin-bottom: 8px; }
 
-/*leaflet needs a real height or the map collapses to nothing and looks blank*/
+/*leaflet needs a real height or the map collapses to nothing*/
 .map{
-  height: 310px;
+  height: 300px;
   width: 100%;
-  border-radius: var(--radius-sm);
-  background: #eef2f4;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
 }
 
 .legend{
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px 14px;
-  padding: 2px 6px 4px;
-  font-size: 12px;
+  gap: 5px 13px;
+  padding: 2px 8px 5px;
+  font-size: 11.5px;
 }
 
 .legend-item{
@@ -324,85 +392,92 @@ button {
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: var(--text-light);
+  color: var(--muted);
 }
 
-/*the little swatches that explain what each map marker means*/
 .dot{
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-block;
   flex: 0 0 auto;
 }
 
 .dot-you{
-  background-color: var(--blue);
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--blue);
+  background: #3b82f6;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px #3b82f6;
 }
 
 .dot-stop{
-  background-color: var(--surface);
-  border: 3px solid var(--navy);
+  background: var(--surface);
+  border: 3px solid var(--ink);
 }
 
 .dot-bus{
-  background-color: var(--yellow);
-  border: 1.5px solid var(--navy);
+  background: var(--accent);
+  border: 1.5px solid #7a5a12;
   border-radius: 3px;
 }
 
 .dot-line{
-  background-color: var(--ocean);
+  background: var(--brand);
   border-radius: 2px;
   height: 4px;
-  width: 16px;
+  width: 15px;
 }
 
-/*the route-number badge sitting on each bus location*/
+/*route-number badge sitting on each bus location*/
 .bus-pin{
-  background-color: var(--yellow);
-  color: var(--navy);
+  background: var(--accent);
+  color: #3d2c05;
   font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 800;
   line-height: 20px;
   height: 24px;
   text-align: center;
-  border-radius: 6px;
-  border: 2px solid var(--navy);
+  border-radius: 7px;
+  border: 2px solid #7a5a12;
   box-shadow: var(--shadow-md);
+  transition: transform 0.15s ease;
 }
 
-/*the bus you picked from the list, so you can spot it among the others*/
 .bus-pin-on{
-  background-color: var(--navy);
-  color: var(--yellow);
-  transform: scale(1.15);
+  background: #0e1c2b;
+  color: var(--accent);
+  border-color: #0e1c2b;
+  transform: scale(1.18);
 }
 
-/*the stop marker: a ring, deliberately not shaped like a bus badge*/
 .stop-pin{
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--surface);
-  border: 4px solid var(--navy);
+  background: #ffffff;
+  border: 4px solid #0e1c2b;
   box-shadow: var(--shadow-md);
 }
 
 /* ---------- map popups ---------- */
 
-/*leaflets default padding is generous, which eats a phone screen*/
+/*leaflets defaults are generous, which eats a phone screen*/
 .leaflet-popup-content-wrapper{
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-sm);
   box-shadow: var(--shadow-lg);
+  background: var(--surface);
+  color: var(--ink);
 }
 
+.leaflet-popup-tip{ background: var(--surface); }
+
 .leaflet-popup-content{
-  margin: 9px 11px;
+  margin: 9px 12px;
   line-height: 1.4;
 }
+
+.leaflet-container{ font-family: 'Inter', sans-serif; }
+
+.leaflet-container a.leaflet-popup-close-button{ color: var(--muted); }
 
 .pop-top{
   display: flex;
@@ -413,37 +488,59 @@ button {
 }
 
 .pop-route{
-  background: var(--ocean);
-  color: var(--white);
+  background: var(--brand);
+  color: #fff;
   font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
 }
 
 .pop-mins{
   font-size: 13px;
-  font-weight: 700;
-  color: var(--navy);
+  font-weight: 800;
+  color: var(--ink);
 }
 
 .pop-head{
   display: block;
   font-size: 12.5px;
-  font-weight: 600;
-  color: var(--navy);
+  font-weight: 650;
+  color: var(--ink);
 }
 
 .pop-sub{
   display: block;
   font-size: 11px;
-  color: var(--text-light);
+  color: var(--muted);
   margin-top: 1px;
 }
 
-.leaflet-container{
-  font-family: 'Inter', sans-serif;
+/*leaflet controls, restyled to match instead of default grey boxes*/
+.leaflet-touch .leaflet-bar,
+.leaflet-bar{
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-sm) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
 }
+
+.leaflet-bar a{
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  border-bottom-color: var(--line) !important;
+}
+
+.leaflet-bar a:hover{ background: var(--surface-2) !important; }
+
+.leaflet-control-attribution{
+  background: color-mix(in srgb, var(--surface) 82%, transparent) !important;
+  color: var(--muted) !important;
+  font-size: 10px !important;
+  border-radius: var(--r-sm) 0 0 0;
+}
+
+.leaflet-control-attribution a{ color: var(--muted) !important; }
 
 /* ---------- results ---------- */
 
@@ -452,91 +549,102 @@ button {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 13px;
 }
 
 .stop-sub{
-  font-size: 13px;
-  color: var(--text-light);
-  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 3px;
 }
 
 .updated{
-  font-size: 11px;
-  color: var(--text-light);
+  font-size: 10.5px;
+  color: var(--muted);
   text-align: right;
   line-height: 1.5;
   flex: 0 0 auto;
 }
 
-.muted{
-  font-size: 14px;
-  color: var(--text-light);
-}
+.muted{ font-size: 14px; color: var(--muted); }
 
 .alert{
   font-size: 14px;
   color: var(--danger);
-  background: #fdecea;
-  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: var(--r-sm);
   padding: 12px 14px;
   margin-bottom: 16px;
 }
 
 .geo-note{
-  font-size: 13px;
-  color: var(--text-light);
-  margin: -8px 0 18px;
-  padding: 0 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: -6px 0 16px;
+  padding: 0 4px;
+}
+
+.link{
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  text-decoration: underline;
+  padding: 0;
 }
 
 .empty-state{
   background: var(--surface);
-  border: 1px dashed var(--line);
-  border-radius: var(--radius);
-  padding: 28px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 34px 22px;
   text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.empty-mark{
+  font-size: 30px;
+  display: block;
+  margin-bottom: 10px;
 }
 
 .empty-title{
   font-size: 16px;
-  font-weight: 600;
-  color: var(--navy);
-  margin-bottom: 6px;
+  font-weight: 700;
+  margin-bottom: 5px;
 }
 
 /* ---------- arrival cards ---------- */
 
 .arrival-card{
-  background-color: var(--surface);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  border-radius: var(--r-md);
+  padding: 13px 15px;
   margin-bottom: 8px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 13px;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
 }
 
 .arrival-card:hover{
-  border-color: var(--ocean);
-  transform: translateY(-1px);
+  border-color: var(--line-strong);
   box-shadow: var(--shadow-md);
 }
 
-/*the card you clicked, matches the highlighted pin on the map*/
+.arrival-card:active{ transform: scale(0.99); }
+
 .arrival-card.is-selected{
-  border-color: var(--ocean);
-  background: var(--ocean-soft);
+  border-color: var(--brand);
+  background: var(--brand-tint);
 }
 
 /*no gps, so theres nothing to click through to. dont pretend otherwise*/
 .arrival-card.is-untracked{
   cursor: default;
-  background: #fbfcfd;
+  opacity: 0.72;
 }
 
 .arrival-card.is-untracked:hover{
@@ -545,44 +653,40 @@ button {
   border-color: var(--line);
 }
 
+/*tinted rather than solid: quieter, and lets the time be the loud thing*/
 .route-badge{
-  background-color: var(--ocean);
-  color: var(--surface);
-  font-size: 16px;
-  font-weight: 700;
-  padding: 9px 10px;
-  border-radius: var(--radius-sm);
-  min-width: 52px;
+  background: var(--brand-tint);
+  color: var(--brand-ink);
+  font-size: 15px;
+  font-weight: 800;
+  padding: 9px 8px;
+  border-radius: var(--r-sm);
+  min-width: 50px;
   text-align: center;
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
+  letter-spacing: -0.3px;
 }
 
 .is-untracked .route-badge{
-  background-color: #9fb4bf;/*muted, signals "no live data" without extra words*/
+  background: var(--surface-2);
+  color: var(--muted);
 }
 
-.arrival-info{
-  flex: 1;
-  min-width: 0;/*lets long destination names shrink instead of overflowing*/
-}
+.arrival-info{ flex: 1; min-width: 0; }
 
 .headsign{
   font-size: 14px;
-  font-weight: 600;
-  color: var(--navy);
+  font-weight: 650;
+  color: var(--ink);
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.meta{
-  font-size: 12px;
-  color: var(--text-light);
-}
+.meta{ font-size: 11.5px; color: var(--muted); }
 
-/*stacked: big minutes on top, clock time underneath as the backup detail*/
 .arrival-time{
   display: flex;
   flex-direction: column;
@@ -593,54 +697,85 @@ button {
 
 .mins{
   font-size: 19px;
-  font-weight: 700;
-  color: var(--navy);
-  font-variant-numeric: tabular-nums;/*digits keep the same width so rows dont jitter*/
-  letter-spacing: -0.4px;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;/*digits keep width so rows dont jitter*/
+  letter-spacing: -0.5px;
+  line-height: 1.15;
 }
 
 /*about to leave, worth shouting about*/
-.mins-soon{
-  color: var(--ocean);
-}
+.mins-soon{ color: var(--brand); }
 
 .clock{
   font-size: 11px;
-  color: var(--text-light);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-/*"show N more" / "show fewer" under the arrival list*/
+/*"show N more" / "show fewer"*/
 .more{
   display: block;
   width: 100%;
-  padding: 12px;
-  margin-top: 4px;
+  padding: 13px;
+  margin-top: 6px;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--ocean);
+  font-weight: 700;
+  color: var(--brand-ink);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  transition: border-color 0.15s ease;
+  border-radius: var(--r-full);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .more:hover{
-  border-color: var(--ocean);
+  border-color: var(--brand);
+  background: var(--brand-tint);
 }
+
+/* ---------- loading skeletons ---------- */
+
+/*placeholder cards while the first fetch lands. keeps the layout from
+  jumping, and reads as "working" better than the word Loading*/
+.skeleton{
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 13px 15px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.sk-block{
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 50%,
+    var(--surface-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer{
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.sk-badge{ width: 50px; height: 38px; border-radius: var(--r-sm); flex: 0 0 auto; }
+.sk-line{ height: 11px; width: 62%; }
+.sk-line-sm{ height: 9px; width: 38%; margin-top: 7px; }
+.sk-time{ width: 46px; height: 20px; flex: 0 0 auto; }
+.sk-body{ flex: 1; }
 
 /* ---------- small screens ---------- */
 
 @media (max-width: 520px){
-  #root{
-    padding: 20px 14px 48px;
-  }
-
-  h1{
-    font-size: 22px;
-  }
-
-  .map{
-    height: 260px;
-  }
+  #root{ padding: 0 13px 64px; }
+  .topbar{ margin: 0 -13px; padding: 12px 13px 9px; }
+  .map{ height: 250px; }
+  .mins{ font-size: 18px; }
 }

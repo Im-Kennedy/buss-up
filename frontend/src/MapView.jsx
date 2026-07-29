@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup } from "react-leaflet";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";//the raw leaflet library, needed to build our own icons
 import { minutesAway, isTracked, upcomingSegment, walkTime, formatWait } from "./arrivals.js";
 
@@ -27,6 +27,21 @@ function stopIcon() {
 function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = [], center, centerKey, onPickStop }) {
     //honolulu, used as the starting view before we know where the user is
     const fallback = [21.3069, -157.8583];
+
+    //a light map inside a dark app looks like a hole punched in the page,
+    //so the tiles follow the same system setting the css does
+    const [darkTiles, setDarkTiles] = useState(
+        () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
+    );
+
+    useEffect(() => {
+        const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+        if (!mq) return;
+
+        const onChange = (e) => setDarkTiles(e.matches);//fires if you flip the setting
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
+    }, []);
 
     const mapRef = useRef(null);//the leaflet map object once its built
     const markerRefs = useRef({});//id -> marker, so we can pop one open on command
@@ -99,7 +114,8 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                 {/*carto positron: same openstreetmap data but a muted palette, so the
                    buses and route line stand out instead of fighting the map*/}
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    key={darkTiles ? "dark" : "light"}//forces leaflet to swap tile sets
+                    url={`https://{s}.basemaps.cartocdn.com/${darkTiles ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`}
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
                     subdomains="abcd"
                 />

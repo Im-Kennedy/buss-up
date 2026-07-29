@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"; //brings in usestate, how react remembers information
-import "leaflet/dist/leaflet.css";//leaflets own styles, without this the map looks scrambled
-import MapView from "./MapView.jsx";
+import MapView from "./MapView.jsx";//leaflets css is loaded in main.jsx, before our theme
 import StopPicker from "./StopPicker.jsx";
 import { minutesAway, isTracked, formatWait } from "./arrivals.js";
 import { API } from "./api.js";
@@ -25,6 +24,14 @@ function App() {
     const [place, setPlace] = useState(null)//a street/landmark searched instead of using gps
     const [nearby, setNearby] = useState([])//stops around whichever point were centred on
     const [showAll, setShowAll] = useState(false)//expand past the first handful of arrivals
+    const [stuck, setStuck] = useState(false)//true once youve scrolled, to line the header
+
+    //the header only grows its bottom border once content slides under it
+    useEffect(() => {
+        const onScroll = () => setStuck(window.scrollY > 4)
+        window.addEventListener("scroll", onScroll, { passive: true })
+        return () => window.removeEventListener("scroll", onScroll)
+    }, [])
     //stored with the id it belongs to, so we can tell whether it matches the
     //currently selected bus instead of clearing it in an effect
     const [shapeCache, setShapeCache] = useState({ id: null, points: null })
@@ -161,14 +168,17 @@ function App() {
 
     return (
         <div className="app">
-            {/* app title */}
-            <header className="app-head">
-                <div className="brand">
+            {/* app title. sticky, so the search stays reachable while you scroll */}
+            <header className={"topbar" + (stuck ? " is-stuck" : "")}>
+                <div className="topbar-inner">
                     <span className="brand-mark">🚌</span>
-                    <div>
+                    <div className="brand-text">
                         <h1>Buss Up</h1>
-                        <p className="subtitle">Real-time arrivals for Oahu</p>
+                        <p className="subtitle">Oahu arrivals</p>
                     </div>
+                    {activeStop && !error && (
+                        <span className="live-pill"><i className="live-dot" />Live</span>
+                    )}
                 </div>
             </header>
 
@@ -216,14 +226,24 @@ function App() {
             {/*error*/}
             {error && <p className="alert">{error}</p>}
 
-            {/* loading message*/}
-            {loading && <p className="muted">Loading arrivals...</p>}
+            {/* placeholder cards instead of a "loading..." line, so nothing jumps */}
+            {loading && [0, 1, 2, 3].map((n) => (
+                <div key={n} className="skeleton">
+                    <div className="sk-block sk-badge" />
+                    <div className="sk-body">
+                        <div className="sk-block sk-line" />
+                        <div className="sk-block sk-line-sm" />
+                    </div>
+                    <div className="sk-block sk-time" />
+                </div>
+            ))}
 
             {!activeStop && !loading && (
                 <div className="empty-state">
+                    <span className="empty-mark" aria-hidden="true">🗺️</span>
                     <p className="empty-title">Pick a stop to get started</p>
                     <p className="muted">
-                        Tap one of the stops near you, or search by name like "Ala Moana".
+                        Tap a stop near you, or search a street like "Bannister".
                     </p>
                 </div>
             )}
