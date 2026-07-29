@@ -7,6 +7,9 @@ backend/.venv/
 backend/*.pyc
 backend/.env
 
+# generated from the gtfs feed by build_gtfs.py, ~5MB so not worth committing
+backend/data/
+
 # Node / React
 frontend/node_modules/
 frontend/dist/
