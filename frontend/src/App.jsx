@@ -25,6 +25,8 @@ function App() {
     const [nearby, setNearby] = useState([])//stops around whichever point were centred on
     const [showAll, setShowAll] = useState(false)//expand past the first handful of arrivals
     const [stuck, setStuck] = useState(false)//true once youve scrolled, to line the header
+    const [mapView, setMapView] = useState(null)//where the map is looking right now
+    const [mapStops, setMapStops] = useState([])//stops around that spot
 
     //the header only grows its bottom border once content slides under it
     useEffect(() => {
@@ -44,6 +46,15 @@ function App() {
     const center = place ? [place.lat, place.lon] : position
     const centerLabel = place ? place.name : "you"
     const centerKey = place ? `place:${place.lat},${place.lon}` : position ? "gps" : ""
+
+    //hide the map rings when youre zoomed out far enough that they'd be a mess.
+    //derived rather than cleared in an effect, so theres no extra render
+    //also drop anything more than ~2.5km from the middle of the map. without this,
+    //panning somewhere with no service still pins the 7 nearest stops on the far
+    //side of town, which looks broken
+    const visibleMapStops = mapView && mapView.zoom >= 13
+        ? mapStops.filter((s) => s.meters <= 2500)
+        : []
 
     //pulled out as plain numbers so the effect below has simple, checkable deps
     const centerLat = center ? center[0] : null
@@ -68,8 +79,24 @@ function App() {
         )
     }, [])
 
+    //stops near wherever the map is pointed. refreshed as you pan, so you can
+    //drag around town and see whats there without searching. capped low on
+    //purpose: every stop on oahu at once is unreadable
+    useEffect(() => {
+        if (!mapView || mapView.zoom < 13) return//zoomed way out, dont bother
+
+        const timer = setTimeout(() => {
+            fetch(`${API}/stops/near?lat=${mapView.lat}&lon=${mapView.lon}&limit=7`)
+                .then((r) => r.json())
+                .then((d) => setMapStops(d.stops || []))
+                .catch(() => { })
+        }, 300)//wait until you stop dragging
+
+        return () => clearTimeout(timer)
+    }, [mapView])
+
     //stops around the current centre, whether thats your gps fix or a searched
-    //street. these show as chips up top AND as rings on the map
+    //street. these show as chips up top
     useEffect(() => {
         if (centerLat === null || centerLon === null) return
 
@@ -121,7 +148,6 @@ function App() {
     }, [activeStop, reloadKey])
 
     const selected = arrivals.find((a) => a.id === selectedId) || null
-    const trackedCount = arrivals.filter(isTracked).length
 
     //show the next few by default. if you tapped a bus on the map thats further
     //down the list, stretch the cut-off far enough to include it, otherwise its
@@ -187,7 +213,9 @@ function App() {
                 centerLabel={centerLabel}
                 activeStop={activeStop}
                 onPickStop={pickStop}
-                onPickPlace={setPlace}
+                //searching a new place means you've moved on. keeping the old bus
+                //selected left the map trying to follow it and the new place at once
+                onPickPlace={(p) => { setSelectedId(null); setPlace(p) }}
             />
 
             {place && (
@@ -209,18 +237,20 @@ function App() {
                     selectedId={selectedId}
                     stop={stopInfo}
                     shape={shape}
-                    nearby={nearby}
+                    mapStops={visibleMapStops}
                     center={center}
                     centerKey={centerKey}
                     onPickStop={pickStop}
+                    onMapMove={setMapView}
                 />
 
-                <div className="legend">
-                    <span className="legend-item"><i className="dot dot-you" />You</span>
-                    <span className="legend-item"><i className="dot dot-stop" />Stop</span>
-                    <span className="legend-item"><i className="dot dot-bus" />Bus now</span>
-                    {selected && <span className="legend-item"><i className="dot dot-line" />Route {selected.route}</span>}
-                </div>
+                {/*one line of context, not a four-item key. the markers explain
+                   themselves when you tap them*/}
+                <p className="map-hint">
+                    {selected
+                        ? `Route ${selected.route} · teal line is where it's heading`
+                        : "Drag the map to find stops · tap a ring for arrivals"}
+                </p>
             </section>
 
             {/*error*/}
@@ -250,20 +280,14 @@ function App() {
 
             {activeStop && !loading && !error && (
                 <>
+                    {/*name, number, and when we last checked. the LIVE badge up top
+                       already says its refreshing, so that sentence is gone*/}
                     <div className="results-head">
-                        <div>
-                            <h2>{stopInfo?.stopName || stop?.name || `Stop ${activeStop}`}</h2>
-                            <p className="stop-sub">
-                                Stop #{activeStop}
-                                {arrivals.length > 0 && ` · ${arrivals.length} coming · ${trackedCount} live`}
-                            </p>
-                        </div>
-                        {updatedAt && (
-                            <span className="updated">
-                                Updated {updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                                <br />refreshes every 30s
-                            </span>
-                        )}
+                        <h2>{stopInfo?.stopName || stop?.name || `Stop ${activeStop}`}</h2>
+                        <p className="stop-sub">
+                            Stop #{activeStop}
+                            {updatedAt && ` · updated ${updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
+                        </p>
                     </div>
 
                     {arrivals.length === 0 && (
@@ -292,13 +316,13 @@ function App() {
                         <div className="route-badge">{arrival.route}</div>
 
                         {/*middle destination name */}
+                        {/*the meta line used to repeat "tap to trace its route" on
+                           every single row, which was just noise. now it only speaks
+                           up when theres something specific to say*/}
                         <div className="arrival-info">
                             <p className="headsign">{arrival.headsign}</p>
-                            <p className="meta">
-                                {tracked
-                                    ? (selectedId === arrival.id ? "Showing route on map" : "Tap to trace its route")
-                                    : "Not sending location yet"}
-                            </p>
+                            {selectedId === arrival.id && <p className="meta">Route shown on map</p>}
+                            {!tracked && <p className="meta">No live location</p>}
                         </div>
 
                         {/*arrival time right*/}

@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup } from "react-leaflet";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";//the raw leaflet library, needed to build our own icons
-import { minutesAway, isTracked, upcomingSegment, walkTime, formatWait } from "./arrivals.js";
+import { minutesAway, isTracked, upcomingSegment, formatWait } from "./arrivals.js";
 
 //builds a little badge with the route number inside it.
 //divIcon means the marker is just html, so we skip leaflets broken image icons
@@ -24,7 +24,7 @@ function stopIcon() {
     });
 }
 
-function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = [], center, centerKey, onPickStop }) {
+function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = [], center, centerKey, onPickStop, onMapMove }) {
     //honolulu, used as the starting view before we know where the user is
     const fallback = [21.3069, -157.8583];
 
@@ -43,9 +43,12 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
         return () => mq.removeEventListener("change", onChange);
     }, []);
 
-    const mapRef = useRef(null);//the leaflet map object once its built
+    //held in state, not a ref: a ref is still null when our effects first run, so
+    //anything that only attaches once (like the moveend listener) silently missed it
+    const [map, setMap] = useState(null);
     const markerRefs = useRef({});//id -> marker, so we can pop one open on command
     const centeredOnUser = useRef(false);//only auto-center on the user once
+    const framedFor = useRef(null);//which bus weve already pointed the map at
 
     //buses with no gps report as "0"/"0" (vehicle shows as ???), those would
     //land off the coast of africa so drop them
@@ -53,26 +56,45 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
 
     const stopPoint = stop?.stopLat && stop?.stopLon ? [stop.stopLat, stop.stopLon] : null;
 
+    //tell the app where the map is looking whenever you stop dragging, so it can
+    //load the handful of stops around that spot
+    useEffect(() => {
+        if (!map || !onMapMove) return;
+
+        const report = () => {
+            const c = map.getCenter();
+            onMapMove({ lat: c.lat, lon: c.lng, zoom: map.getZoom() });
+        };
+
+        map.on("moveend", report);
+        report();//seed it, so stops appear before you touch anything
+
+        return () => map.off("moveend", report);
+    }, [map, onMapMove]);
+
     //move to whatever were centred on: your gps fix the first time it arrives,
     //or a street you searched. centerKey changes only when the place really
     //changes, so panning around doesnt get yanked back
     useEffect(() => {
-        if (!center || !mapRef.current) return;
+        if (!center || !map) return;
         if (centerKey === "gps" && centeredOnUser.current) return;//only auto-follow gps once
 
-        mapRef.current.setView(center, 15);//15 = zoom level, higher is closer
+        //an open popup drags the map back to its own marker (leaflet autoPan),
+        //so it has to go before we move, or we never arrive
+        map.closePopup();
+        map.setView(center, 15);//15 = zoom level, higher is closer
         if (centerKey === "gps") centeredOnUser.current = true;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [centerKey]);
+    }, [map, centerKey]);
 
     //when a stop gets picked, frame it
     useEffect(() => {
-        if (stopPoint && mapRef.current) {
-            mapRef.current.setView(stopPoint, 14);
+        if (stopPoint && map) {
+            map.setView(stopPoint, 14);
         }
         //only when the stop actually changes, not on every refresh
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [stop?.stop]);
+    }, [map, stop?.stop]);
 
     const selectedBus = buses.find((b) => b.id === selectedId) || null;
     //pull the coords out as plain numbers. if we depended on the bus object itself
@@ -86,27 +108,37 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
         : null;
 
     //when a card in the list gets clicked, frame the whole leg (bus + your stop)
-    //rather than zooming to the bus alone, which pushes the stop off screen
+    //rather than zooming to the bus alone, which pushes the stop off screen.
+    //framed ONCE per selection: the buses coordinates change every refresh, and
+    //re-framing on those kept dragging the map back and fighting other moves
     useEffect(() => {
-        if (selLat === null || selLng === null || !mapRef.current) return;
+        if (!selectedId) {
+            framedFor.current = null;//deselected, so allow framing again next time
+            map?.closePopup();//dont leave a bubble hanging over the map
+            return;
+        }
+
+        if (framedFor.current === selectedId) return;//already framed this one
+        if (selLat === null || selLng === null || !map) return;
 
         if (stopPoint) {
-            mapRef.current.fitBounds([[selLat, selLng], stopPoint], {
+            map.fitBounds([[selLat, selLng], stopPoint], {
                 padding: [45, 45],
                 maxZoom: 15,//dont zoom absurdly close when the bus is nearly here
             });
         } else {
-            mapRef.current.flyTo([selLat, selLng], 14);
+            map.flyTo([selLat, selLng], 14);
         }
 
         markerRefs.current[selectedId]?.openPopup();
+        framedFor.current = selectedId;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedId, selLat, selLng]);
+    }, [map, selectedId, selLat, selLng]);
 
     return (
         <div className="map-wrap">
             <MapContainer
-                ref={mapRef}
+                ref={setMap}
                 center={position || fallback}
                 zoom={position ? 15 : 11}
                 className="map"
@@ -141,14 +173,14 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                         radius={7}
                         pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }}
                     >
-                        <Popup>You are here</Popup>
+                        <Popup autoPan={false}>You are here</Popup>
                     </CircleMarker>
                 )}
 
-                {/*the other stops around you. small hollow rings so they read as
-                   "options" next to the solid marker for the stop youve picked.
-                   tapping one switches to it, same as tapping the chip up top*/}
-                {nearby
+                {/*stops around wherever the map is currently looking, refreshed as
+                   you pan. small hollow rings so they read as "options" next to the
+                   solid marker for the stop youve picked*/}
+                {mapStops
                     .filter((s) => String(s.id) !== String(stop?.stop))
                     .map((s) => (
                         <CircleMarker
@@ -158,9 +190,9 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                             pathOptions={{ color: "#14263c", weight: 2, fillColor: "#ffffff", fillOpacity: 1 }}
                             eventHandlers={{ click: () => onPickStop?.(s) }}
                         >
-                            <Popup maxWidth={200} minWidth={120}>
+                            <Popup maxWidth={200} minWidth={120} autoPan={false}>
                                 <span className="pop-head">{s.name}</span>
-                                <span className="pop-sub">#{s.id} · {walkTime(s.meters)}</span>
+                                <span className="pop-sub">Stop #{s.id} · tap for arrivals</span>
                             </Popup>
                         </CircleMarker>
                     ))}
@@ -168,7 +200,7 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                 {/*where youre actually waiting*/}
                 {stopPoint && (
                     <Marker position={stopPoint} icon={stopIcon()}>
-                        <Popup maxWidth={200} minWidth={120}>
+                        <Popup maxWidth={200} minWidth={120} autoPan={false}>
                             <span className="pop-head">{stop.stopName || `Stop ${stop.stop}`}</span>
                             <span className="pop-sub">Your stop · #{stop.stop}</span>
                         </Popup>
@@ -191,7 +223,7 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, nearby = []
                             {/*kept deliberately short. the stop name is already the
                                heading under the map, and repeating it here made the
                                bubble swallow half a phone screen*/}
-                            <Popup maxWidth={200} minWidth={120}>
+                            <Popup maxWidth={200} minWidth={120} autoPan={false}>
                                 <span className="pop-top">
                                     <span className="pop-route">{bus.route}</span>
                                     <span className="pop-mins">{formatWait(mins) ?? bus.stopTime}</span>

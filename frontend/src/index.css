@@ -378,20 +378,10 @@ input:focus{ outline: none; }
   background: var(--surface-2);
 }
 
-.legend{
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px 13px;
-  padding: 2px 8px 5px;
+/*single quiet line under the map instead of a colour key*/
+.map-hint{
+  padding: 2px 10px 6px;
   font-size: 11.5px;
-}
-
-.legend-item{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
   color: var(--muted);
 }
 
@@ -545,10 +535,6 @@ input:focus{ outline: none; }
 /* ---------- results ---------- */
 
 .results-head{
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
   margin-bottom: 13px;
 }
 
