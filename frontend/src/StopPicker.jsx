@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
-const API = "http://localhost:8000";
+import { API } from "./api.js";
 
 //walking distance reads better than raw meters
 function walkTime(meters) {

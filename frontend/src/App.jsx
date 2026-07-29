@@ -3,8 +3,8 @@ import "leaflet/dist/leaflet.css";//leaflets own styles, without this the map lo
 import MapView from "./MapView.jsx";
 import StopPicker from "./StopPicker.jsx";
 import { minutesAway, isTracked, formatWait } from "./arrivals.js";
+import { API } from "./api.js";
 
-const API = "http://localhost:8000";
 const REFRESH_MS = 30000;//re-ask the backend every 30 seconds
 
 function App() {

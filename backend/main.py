@@ -16,11 +16,19 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 app = FastAPI() #creates fastapi. this app objet is wha teverything is attache to
                 #every endpoint we make gets added to this object
 
+#which frontends are allowed to call us. locally thats vite on 5173, in production
+#its the deployed site, set as ALLOWED_ORIGINS (comma separated) on the host.
+#browsers block the request entirely if the origin isnt on this list
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(#cross origin resource sharing
     #middleware allows different ports to talk to each other to test locally
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],#front end 5173
-    #backend 8000
+    allow_origins=ALLOWED_ORIGINS,
 
     #allows origin is the list of frontends allowed to talk to backend, currently just react
     allow_methods=["*"],#allows http(get,post)

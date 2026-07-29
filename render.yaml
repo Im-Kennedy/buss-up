@@ -1,0 +1,32 @@
+# render.com deploy config. render reads this automatically when you point a
+# "blueprint" at this repo, so you dont have to fill the settings in by hand.
+services:
+  - type: web
+    name: buss-up-api
+    runtime: python
+    plan: free
+    rootDir: backend
+
+    # build_gtfs.py has to run here: it downloads thebus gtfs feed and writes
+    # data/stops.json + data/shapes.json, which are gitignored so they dont
+    # exist on a fresh clone. without this step stop names, nearby search and
+    # route lines all break
+    buildCommand: pip install -r requirements.txt && python build_gtfs.py
+
+    # $PORT is assigned by render, we dont get to pick it.
+    # 0.0.0.0 (not 127.0.0.1) so the outside world can reach it
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+    envVars:
+      # sync: false means "ask me in the dashboard, dont store it in git".
+      # this is your thebus api key, it must never be committed
+      - key: THEBUS_API_KEY
+        sync: false
+
+      # the vercel url of the frontend, comma separated if more than one.
+      # browsers block the frontend from calling this api unless its listed
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+      - key: PYTHON_VERSION
+        value: "3.12.0"
