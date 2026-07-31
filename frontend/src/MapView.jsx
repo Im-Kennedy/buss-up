@@ -173,13 +173,17 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
                         <CircleMarker
                             key={`near-${s.id}`}
                             center={[s.lat, s.lon]}
-                            radius={5}
-                            //hollow in both themes, so it matches the legend swatch
+                            radius={stopPoint ? 4 : 5}
+                            //hollow in both themes, so it matches the legend swatch.
+                            //once youve chosen a stop these fade back: still tappable
+                            //for the stop across the street, but no longer competing
+                            //with your stop and the route line
                             pathOptions={{
                                 color: darkTiles ? "#e9f1f6" : "#14263c",
-                                weight: 2,
+                                weight: stopPoint ? 1.5 : 2,
+                                opacity: stopPoint ? 0.4 : 1,
                                 fillColor: darkTiles ? "#0a1017" : "#ffffff",
-                                fillOpacity: 1,
+                                fillOpacity: stopPoint ? 0.35 : 1,
                             }}
                             eventHandlers={{ click: () => onPickStop?.(s) }}
                         >

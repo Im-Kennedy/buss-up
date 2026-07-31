@@ -368,15 +368,24 @@ function App() {
 
             {activeStop && !loading && !error && (
                 <>
-                    {/*name, number, and when we last checked. the LIVE badge up top
-                       already says its refreshing, so that sentence is gone*/}
+                    {/*labelled so the page reads top to bottom: which stop youre
+                       looking at, then whats coming to it. without the labels the
+                       list just appears and you have to infer what it is*/}
                     <div className="results-head">
+                        <p className="eyebrow">Your stop</p>
                         <h2>{stopInfo?.stopName || stop?.name || `Stop ${activeStop}`}</h2>
                         <p className="stop-sub">
                             Stop #{activeStop}
                             {updatedAt && ` · updated ${updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`}
                         </p>
                     </div>
+
+                    {arrivals.length > 0 && (
+                        <div className="section-head">
+                            <p className="eyebrow">Upcoming arrivals</p>
+                            <span className="section-count">{arrivals.length}</span>
+                        </div>
+                    )}
 
                     {arrivals.length === 0 && (
                         <p className="muted">No buses due here right now.</p>

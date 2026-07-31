@@ -342,13 +342,43 @@ input:focus{ outline: none; }
 .nearby{ margin-top: 14px; }
 
 .nearby-label{
-  display: block;
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.9px;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.nearby-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 9px;
+}
+
+/*collapsed state: one tappable line standing in for the whole chip row*/
+.nearby-collapsed{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease;
+}
+
+.nearby-collapsed:hover{ border-color: var(--line-strong); }
+
+.nearby-toggle{
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  white-space: nowrap;
 }
 
 .chips{
@@ -677,7 +707,37 @@ input:focus{ outline: none; }
 /* ---------- results ---------- */
 
 .results-head{
-  margin-bottom: 13px;
+  margin-bottom: 16px;
+}
+
+/*small caps label above a section. same treatment as "near waikiki", so the
+  page reads as a set of labelled blocks instead of unexplained content*/
+.eyebrow{
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+
+.section-head{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.section-head .eyebrow{ margin-bottom: 0; }
+
+.section-count{
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--muted);
+  background: var(--surface-2);
+  border-radius: var(--r-full);
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
 }
 
 .stop-sub{

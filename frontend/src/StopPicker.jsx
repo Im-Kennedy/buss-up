@@ -7,6 +7,7 @@ function StopPicker({ nearby = [], centerLabel, activeStop, onPickStop, onPickPl
     const [stops, setStops] = useState([]);
     const [places, setPlaces] = useState([]);
     const [open, setOpen] = useState(false);
+    const [expandedFor, setExpandedFor] = useState(null);
     const boxRef = useRef(null);
 
     //search as you type, but wait for a pause so we dont fire a request per keystroke.
@@ -40,6 +41,11 @@ function StopPicker({ nearby = [], centerLabel, activeStop, onPickStop, onPickPl
         document.addEventListener("mousedown", onClickAway);
         return () => document.removeEventListener("mousedown", onClickAway);
     }, []);
+
+    //which stop the list was manually re-opened for. storing the stop rather than
+    //a plain true/false means picking a different stop collapses it again on its
+    //own, with no effect needed to reset the flag
+    const showChips = !activeStop || expandedFor === activeStop;
 
     //derived instead of stored, so clearing the box cant leave stale hits on screen
     const typing = query.trim();
@@ -121,20 +127,39 @@ function StopPicker({ nearby = [], centerLabel, activeStop, onPickStop, onPickPl
 
             {nearby.length > 0 && (
                 <div className="nearby">
-                    <span className="nearby-label">Near {centerLabel}</span>
-                    <div className="chips">
-                        {nearby.map((stop) => (
-                            <button
-                                key={stop.id}
-                                className={"chip" + (String(stop.id) === String(activeStop) ? " chip-on" : "")}
-                                onClick={() => chooseStop(stop)}
-                                title={`${stop.name} · stop ${stop.id}`}
-                            >
-                                <span className="chip-name">{stop.name}</span>
-                                <span className="chip-dist">{walkTime(stop.meters)}</span>
-                            </button>
-                        ))}
-                    </div>
+                    {showChips ? (
+                        <>
+                            <div className="nearby-head">
+                                <span className="nearby-label">Near {centerLabel}</span>
+                                {activeStop && (
+                                    <button className="nearby-toggle" onClick={() => setExpandedFor(null)}>
+                                        Hide
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="chips">
+                                {nearby.map((stop) => (
+                                    <button
+                                        key={stop.id}
+                                        className={"chip" + (String(stop.id) === String(activeStop) ? " chip-on" : "")}
+                                        onClick={() => chooseStop(stop)}
+                                        title={`${stop.name} · stop ${stop.id}`}
+                                    >
+                                        <span className="chip-name">{stop.name}</span>
+                                        <span className="chip-dist">{walkTime(stop.meters)}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        //collapsed once youve chosen a stop: the list has done its job
+                        //and the arrivals below are what you actually came for
+                        <button className="nearby-collapsed" onClick={() => setExpandedFor(activeStop)}>
+                            <span className="nearby-label">Near {centerLabel}</span>
+                            <span className="nearby-toggle">{nearby.length} stops · change</span>
+                        </button>
+                    )}
                 </div>
             )}
         </div>
