@@ -45,9 +45,10 @@ cd backend && .venv/bin/python build_gtfs.py
 ```
 
 This downloads TheBus GTFS feed (~11MB) and writes `data/stops.json` (3,847
-stops) and `data/shapes.json` (532 route shapes). The realtime API only returns
-stop *numbers* and shape IDs, so without this step there are no stop names, no
-nearby-stop search (`/stops/near` returns 503), and no route lines.
+stops), `data/shapes.json` (532 route shapes) and `data/route_stops.json` (the
+stop sequence per shape). The realtime API only returns stop *numbers* and shape
+IDs, so without this step there are no stop names, no nearby-stop search
+(`/stops/near` returns 503), no route lines, and no "stops away" counts.
 
 `data/` is gitignored, so run this again on any fresh clone. Re-run it every
 few months, or whenever routes change — the feed is a static snapshot.
@@ -69,7 +70,7 @@ Or in two terminals: `.venv/bin/python -m uvicorn main:app --reload` in
 | `/stops/near?lat=&lon=` | closest stops to a point, with distance in metres |
 | `/stops/search?q=` | stop lookup by name or number |
 | `/geocode?q=` | street/landmark to coordinates, boxed to Oahu. cached |
-| `/shape/{shape_id}` | the points making up a route line |
+| `/shape/{shape_id}` | the points making up a route line, plus the stops it calls at in order (used for "4 stops away") |
 
 Geocoding uses OpenStreetMap's Nominatim. Results are cached server-side and
 the frontend debounces typing, which keeps a personal-scale app inside their

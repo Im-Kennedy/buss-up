@@ -55,6 +55,7 @@ def load_json(name):
 #loaded once when the server boots, not per request
 STOPS = load_json("stops.json") or []
 SHAPES = load_json("shapes.json") or {}
+ROUTE_STOPS = load_json("route_stops.json") or {}#shape_id -> stops in travel order
 
 #stop number -> stop, so looking one up is instant instead of scanning 3800 rows
 STOPS_BY_ID = {}
@@ -196,13 +197,22 @@ async def geocode(q: str, limit: int = 4):
 
 @app.get("/shape/{shape_id}")
 def shape(shape_id: str):
-    """the actual path a bus drives, so we can draw it on the map"""
+    """the path a bus drives, plus the stops it calls at along the way.
+       the stop list is what lets the app say "4 stops away" """
     points = SHAPES.get(shape_id)
 
     if points is None:
         raise HTTPException(status_code=404, detail="unknown shape")
 
-    return {"shape": shape_id, "points": points}
+    #resolve ids to positions here, so the frontend can work out which stop the
+    #bus is nearest without a second round trip
+    stops = []
+    for stop_id in ROUTE_STOPS.get(shape_id, []):
+        stop = STOPS_BY_ID.get(str(stop_id))
+        if stop:
+            stops.append({"id": stop["id"], "lat": stop["lat"], "lon": stop["lon"]})
+
+    return {"shape": shape_id, "points": points, "stops": stops}
 
 
 @app.get("/arrivals/{stop_id}")#creates endpoint at arrivals, stop id is variable example, /arriavls/4287

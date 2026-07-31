@@ -107,6 +107,59 @@ def build_shapes(archive):
     return shapes
 
 
+def build_route_stops(archive):
+    """shape_id -> the stops a bus on that shape calls at, in order.
+
+       this is what lets us say "4 stops away" instead of just a distance.
+       the realtime feed gives a shape id per bus but no stop sequence, and
+       stop_times.txt is 73MB, so we take ONE representative trip per shape
+       and only keep rows belonging to those trips"""
+    #trip_id -> shape_id, and the first trip we see for each shape is our sample
+    sample_trip_for_shape = {}
+    trip_to_shape = {}
+
+    with archive.open("trips.txt") as f:
+        reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig"))
+
+        for row in reader:
+            shape_id = row.get("shape_id")
+            trip_id = row.get("trip_id")
+
+            if not shape_id or not trip_id:
+                continue
+
+            if shape_id not in sample_trip_for_shape:
+                sample_trip_for_shape[shape_id] = trip_id
+                trip_to_shape[trip_id] = shape_id
+
+    #stream the big file, keeping only the handful of trips we care about
+    collected = {}
+
+    with archive.open("stop_times.txt") as f:
+        reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig"))
+
+        for row in reader:
+            shape_id = trip_to_shape.get(row.get("trip_id"))
+            if not shape_id:
+                continue
+
+            try:
+                collected.setdefault(shape_id, []).append(
+                    (int(row["stop_sequence"]), row["stop_id"])
+                )
+            except (ValueError, KeyError):
+                continue
+
+    route_stops = {}
+    for shape_id, rows in collected.items():
+        rows.sort()#stop_sequence order, which is the order the bus drives them
+        route_stops[shape_id] = [stop_id for _, stop_id in rows]
+
+    total = sum(len(v) for v in route_stops.values())
+    print(f"route stops: {len(route_stops)} shapes, {total} stop entries")
+    return route_stops
+
+
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -121,9 +174,11 @@ def main():
 
     stops = build_stops(archive)
     shapes = build_shapes(archive)
+    route_stops = build_route_stops(archive)
 
     stops_path = os.path.join(DATA_DIR, "stops.json")
     shapes_path = os.path.join(DATA_DIR, "shapes.json")
+    route_stops_path = os.path.join(DATA_DIR, "route_stops.json")
 
     with open(stops_path, "w") as f:
         json.dump(stops, f)
@@ -131,8 +186,12 @@ def main():
     with open(shapes_path, "w") as f:
         json.dump(shapes, f, separators=(",", ":"))#no spaces, keeps the file small
 
+    with open(route_stops_path, "w") as f:
+        json.dump(route_stops, f, separators=(",", ":"))
+
     print(f"wrote {len(stops)} stops -> {stops_path} ({os.path.getsize(stops_path) // 1024} KB)")
     print(f"wrote {len(shapes)} shapes -> {shapes_path} ({os.path.getsize(shapes_path) // 1024} KB)")
+    print(f"wrote {len(route_stops)} route stop lists -> {route_stops_path} ({os.path.getsize(route_stops_path) // 1024} KB)")
 
 
 if __name__ == "__main__":

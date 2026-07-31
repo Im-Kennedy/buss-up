@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup } from "react-leaflet";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";//the raw leaflet library, needed to build our own icons
-import { minutesAway, isTracked, upcomingSegment, formatWait, decodeText } from "./arrivals.js";
+import { minutesAway, isTracked, upcomingSegment, formatWait, decodeText, stopsAway } from "./arrivals.js";
 
 //builds a little badge with the route number inside it.
 //divIcon means the marker is just html, so we skip leaflets broken image icons
@@ -24,7 +24,7 @@ function stopIcon() {
     });
 }
 
-function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = [], center, centerKey, onPickStop, onMapMove, onPickBus, dark = false }) {
+function MapView({ position, arrivals = [], selectedId, stop, shape, routeStops, mapStops = [], center, centerKey, onPickStop, onMapMove, onPickBus, dark = false }) {
     //honolulu, used as the starting view before we know where the user is
     const fallback = [21.3069, -157.8583];
 
@@ -89,6 +89,11 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
     //the map would jump back every 30s refresh, even if youd panned somewhere else
     const selLat = selectedBus ? parseFloat(selectedBus.latitude) : null;
     const selLng = selectedBus ? parseFloat(selectedBus.longitude) : null;
+
+    //how many stops the bus still has to call at before yours
+    const away = selectedBus
+        ? stopsAway(routeStops, selLat, selLng, stop?.stop)
+        : null;
 
     //the leg from the bus to your stop, so the line reads as a direction not just a shape
     const upcoming = shape && selectedBus && stopPoint
@@ -226,7 +231,12 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
 
                     <div className="strip-body">
                         <p className="strip-head">{decodeText(selectedBus.headsign)}</p>
-                        <p className="strip-sub">Here now · arrives {selectedBus.stopTime}</p>
+                        {/*"here now" was a fixed string on every bus, which read as a
+                           claim about that specific one. this actually varies*/}
+                        <p className="strip-sub">
+                            {away !== null && `${away} ${away === 1 ? "stop" : "stops"} away · `}
+                            arrives {selectedBus.stopTime}
+                        </p>
                     </div>
 
                     <span className="strip-mins">

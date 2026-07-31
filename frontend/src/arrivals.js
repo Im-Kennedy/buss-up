@@ -84,6 +84,34 @@ export function walkTime(meters) {
     return `${mins} min walk`;
 }
 
+//how many stops the bus still has to call at before it reaches yours.
+//routeStops is the shapes stop list in travel order, so this is just the gap
+//between two positions in that list. the bus is usually BETWEEN stops, so we
+//snap it to the nearest one, which can be off by one either way
+export function stopsAway(routeStops, busLat, busLon, myStopId) {
+    if (!routeStops || routeStops.length === 0 || !myStopId) return null;
+
+    const mine = routeStops.findIndex((s) => String(s.id) === String(myStopId));
+    if (mine < 0) return null;//your stop isnt on this buses route at all
+
+    let busAt = -1;
+    let best = Infinity;
+
+    for (let i = 0; i < routeStops.length; i++) {
+        const dlat = routeStops[i].lat - busLat;
+        const dlon = routeStops[i].lon - busLon;
+        const dist = dlat * dlat + dlon * dlon;//squared is enough to rank them
+
+        if (dist < best) {
+            best = dist;
+            busAt = i;
+        }
+    }
+
+    if (busAt < 0 || busAt >= mine) return null;//already passed, or right at it
+    return mine - busAt;
+}
+
 //"107 min" is hard to read at a glance, "1h 47m" isnt
 export function formatWait(mins) {
     if (mins === null) return null;

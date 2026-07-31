@@ -79,7 +79,7 @@ function App() {
     }, [])
     //stored with the id it belongs to, so we can tell whether it matches the
     //currently selected bus instead of clearing it in an effect
-    const [shapeCache, setShapeCache] = useState({ id: null, points: null })
+    const [shapeCache, setShapeCache] = useState({ id: null, points: null, stops: null })
 
     const activeStop = stop?.id || null
 
@@ -223,7 +223,9 @@ function App() {
     //its own then, so the highlight and the route line both disappear by themselves
 
     //only draw the line if it belongs to the bus thats actually selected right now
-    const shape = shapeCache.id && shapeCache.id === selected?.shape ? shapeCache.points : null
+    const shapeMatches = shapeCache.id && shapeCache.id === selected?.shape
+    const shape = shapeMatches ? shapeCache.points : null
+    const routeStops = shapeMatches ? shapeCache.stops : null
 
     //pull the driving path for whichever bus is selected. the arrivals feed gives
     //us a shape id, the backend turns that into a list of points from the gtfs data
@@ -236,10 +238,10 @@ function App() {
         fetch(`${API}/shape/${shapeId}`)
             .then((r) => (r.ok ? r.json() : null))
             .then((d) => {
-                if (!cancelled) setShapeCache({ id: shapeId, points: d?.points || null })
+                if (!cancelled) setShapeCache({ id: shapeId, points: d?.points || null, stops: d?.stops || null })
             })
             .catch(() => {
-                if (!cancelled) setShapeCache({ id: shapeId, points: null })
+                if (!cancelled) setShapeCache({ id: shapeId, points: null, stops: null })
             })
 
         return () => { cancelled = true }
@@ -320,6 +322,7 @@ function App() {
                     selectedId={selectedId}
                     stop={stopInfo}
                     shape={shape}
+                    routeStops={routeStops}
                     mapStops={visibleMapStops}
                     center={center}
                     centerKey={centerKey}
