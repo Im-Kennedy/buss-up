@@ -187,7 +187,13 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
                             key={`near-${s.id}`}
                             center={[s.lat, s.lon]}
                             radius={5}
-                            pathOptions={{ color: "#14263c", weight: 2, fillColor: "#ffffff", fillOpacity: 1 }}
+                            //hollow in both themes, so it matches the legend swatch
+                            pathOptions={{
+                                color: darkTiles ? "#e9f1f6" : "#14263c",
+                                weight: 2,
+                                fillColor: darkTiles ? "#0a1017" : "#ffffff",
+                                fillOpacity: 1,
+                            }}
                             eventHandlers={{ click: () => onPickStop?.(s) }}
                         >
                             <Popup maxWidth={200} minWidth={120} autoPan={false}>

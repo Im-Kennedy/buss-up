@@ -7,6 +7,18 @@ import { API } from "./api.js";
 const REFRESH_MS = 30000;//re-ask the backend every 30 seconds
 const SHOW_AT_FIRST = 6;//thebus returns ~25 arrivals, hours out. nobody scrolls that
 
+//where we start when we dont know (and arent asking) where you are.
+//waikiki, because its the bit of oahu a stranger will recognise
+const DEFAULT_CENTER = [21.2793, -157.8292]
+const DEFAULT_LABEL = "Waikīkī"
+
+//rough box around oahu. a gps fix outside this is real, just useless here
+const OAHU = { minLat: 21.20, maxLat: 21.75, minLon: -158.32, maxLon: -157.60 }
+
+function onOahu([lat, lon]) {
+    return lat >= OAHU.minLat && lat <= OAHU.maxLat && lon >= OAHU.minLon && lon <= OAHU.maxLon
+}
+
 function App() {
     const [stop, setStop] = useState(null)//the whole stop object now, not just a number
     const [reloadKey, setReloadKey] = useState(0)//bumping this forces a re-fetch of the same stop
@@ -15,10 +27,8 @@ function App() {
     const [loading, setLoading] = useState(false);//only true on a fresh search, not background refreshes
     const [error, setError] = useState('')//error messages
     const [position, setPosition] = useState(null)//[lat, lng] once the browser tells us, null until then
-    //worked out up front rather than inside an effect, otherwise react re-renders twice
-    const [geoError, setGeoError] = useState(() =>
-        navigator.geolocation ? '' : "This browser can't do location."
-    )//separate from error so a denied map doesnt hide arrivals
+    const [geoError, setGeoError] = useState('')//separate from error so a denied map doesnt hide arrivals
+    const [geoBusy, setGeoBusy] = useState(false)//waiting on the browsers permission box
     const [updatedAt, setUpdatedAt] = useState(null)//when we last heard from the backend
     const [selectedId, setSelectedId] = useState(null)//which bus the user clicked in the list
     const [place, setPlace] = useState(null)//a street/landmark searched instead of using gps
@@ -43,9 +53,11 @@ function App() {
     //a searched place wins over gps, so you can look up stops anywhere on oahu
     //even if youre not on the island. derived, not stored, so theres no effect
     //fighting to keep two bits of state in sync
-    const center = place ? [place.lat, place.lon] : position
-    const centerLabel = place ? place.name : "you"
-    const centerKey = place ? `place:${place.lat},${place.lon}` : position ? "gps" : ""
+    const center = place ? [place.lat, place.lon] : position || DEFAULT_CENTER
+    const centerLabel = place ? place.name : position ? "you" : DEFAULT_LABEL
+    const centerKey = place
+        ? `place:${place.lat},${place.lon}`
+        : position ? "gps" : "default"
 
     //hide the map rings when youre zoomed out far enough that they'd be a mess.
     //derived rather than cleared in an effect, so theres no extra render
@@ -60,24 +72,40 @@ function App() {
     const centerLat = center ? center[0] : null
     const centerLon = center ? center[1] : null
 
-    //runs once when the page first loads. [] at the bottom means "only once"
-    useEffect(() => {
-        if (!navigator.geolocation) return//really old browsers, message already set above
+    //deliberately NOT called on load. a permission prompt the second the page
+    //opens is hostile to anyone just taking a look, and a fix from the mainland
+    //is useless here anyway. you tap the button when you actually want it
+    const askForLocation = () => {
+        if (!navigator.geolocation) {
+            setGeoError("This browser can't do location.")
+            return
+        }
 
-        //this is what pops up the browsers "allow location?" permission box
+        setGeoBusy(true)
+
         navigator.geolocation.getCurrentPosition(
             (pos) => {//success, browser hands us a position object
-                setPosition([pos.coords.latitude, pos.coords.longitude])
+                const fix = [pos.coords.latitude, pos.coords.longitude]
+                setGeoBusy(false)
+
+                if (!onOahu(fix)) {//youre somewhere this app cant help with
+                    setGeoError("You're not on Oahu, so we've stayed in Waikīkī. Search any Oahu street to look around.")
+                    return
+                }
+
+                setGeoError('')
+                setPosition(fix)
             },
             (err) => {//user hit block, or it timed out
+                setGeoBusy(false)
                 setGeoError(
                     err.code === err.PERMISSION_DENIED
-                        ? "Location off, so we can't list stops near you. Search by name instead."
+                        ? "Location blocked. Search a stop or street instead."
                         : "Couldn't get your location."
                 )
             }
         )
-    }, [])
+    }
 
     //stops near wherever the map is pointed. refreshed as you pan, so you can
     //drag around town and see whats there without searching. capped low on
@@ -219,16 +247,26 @@ function App() {
                 onPickPlace={(p) => { setSelectedId(null); setPlace(p) }}
             />
 
-            {place && (
-                <p className="geo-note">
-                    Showing stops near {place.name}.{" "}
-                    <button className="link" onClick={() => setPlace(null)}>
-                        {position ? "Back to my location" : "Clear"}
-                    </button>
-                </p>
-            )}
-
-            {!position && !place && geoError && <p className="geo-note">{geoError}</p>}
+            <p className="geo-note">
+                {place ? (
+                    <>
+                        Showing stops near {place.name}.{" "}
+                        <button className="link" onClick={() => setPlace(null)}>
+                            {position ? "Back to my location" : `Back to ${DEFAULT_LABEL}`}
+                        </button>
+                    </>
+                ) : position ? (
+                    <>Showing stops near you.</>
+                ) : (
+                    <>
+                        {geoError || `Starting in ${DEFAULT_LABEL}.`}{" "}
+                        {/*opt-in, so nobody gets a permission box just for visiting*/}
+                        <button className="link" onClick={askForLocation} disabled={geoBusy}>
+                            {geoBusy ? "Locating..." : "Use my location"}
+                        </button>
+                    </>
+                )}
+            </p>
 
             {/*map sits under the search box. shows oahu until a stop is picked*/}
             <section className="panel">
@@ -245,13 +283,15 @@ function App() {
                     onMapMove={setMapView}
                 />
 
-                {/*one line of context, not a four-item key. the markers explain
-                   themselves when you tap them*/}
-                <p className="map-hint">
-                    {selected
-                        ? `Route ${selected.route} · teal line is where it's heading`
-                        : "Drag the map to find stops · tap a ring for arrivals"}
-                </p>
+                {/*colour key. one scrolling row so it stays a single line even on
+                   a phone, and entries only appear when theyre actually on screen*/}
+                <div className="legend">
+                    {position && <span className="legend-item"><i className="dot dot-you" />You</span>}
+                    {activeStop && <span className="legend-item"><i className="dot dot-stop" />Your stop</span>}
+                    <span className="legend-item"><i className="dot dot-ring" />Other stops</span>
+                    {arrivals.length > 0 && <span className="legend-item"><i className="dot dot-bus" />Bus now</span>}
+                    {selected && <span className="legend-item"><i className="dot dot-line" />Route {selected.route}</span>}
+                </div>
             </section>
 
             {/*error*/}
