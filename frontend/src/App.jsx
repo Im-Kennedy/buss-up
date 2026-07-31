@@ -200,7 +200,8 @@ function App() {
                     <span className="brand-mark">🚌</span>
                     <div className="brand-text">
                         <h1>Buss Up</h1>
-                        <p className="subtitle">Oahu arrivals</p>
+                        {/*spelled out so nobody expects it to work on another island*/}
+                        <p className="subtitle">Oahu, Hawaii only</p>
                     </div>
                     {activeStop && !error && (
                         <span className="live-pill"><i className="live-dot" />Live</span>
@@ -273,7 +274,8 @@ function App() {
                     <span className="empty-mark" aria-hidden="true">🗺️</span>
                     <p className="empty-title">Pick a stop to get started</p>
                     <p className="muted">
-                        Tap a stop near you, or search a street like "Bannister".
+                        Covers TheBus on Oahu only. Tap a stop near you, or search
+                        a street like "Bannister".
                     </p>
                 </div>
             )}
