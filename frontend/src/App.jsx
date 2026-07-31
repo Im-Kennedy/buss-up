@@ -325,6 +325,7 @@ function App() {
                     centerKey={centerKey}
                     onPickStop={pickStop}
                     onMapMove={setMapView}
+                    onPickBus={setSelectedId}
                     dark={isDark}
                 />
 

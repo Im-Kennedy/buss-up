@@ -412,7 +412,83 @@ input:focus{ outline: none; }
   overflow: hidden;
 }
 
-.map-wrap{ margin-bottom: 8px; }
+.map-wrap{
+  margin-bottom: 8px;
+  position: relative;/*anchor for the selected-bus strip*/
+}
+
+/* ---------- selected bus strip ---------- */
+
+/*sits inside the map on reserved space, so it never covers the stop, the route
+  line or another bus the way an anchored popup did*/
+.bus-strip{
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 24px;/*clears leaflets attribution line*/
+  z-index: 900;/*above leaflets panes, below the search dropdown*/
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.strip-route{
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: center;
+  background: var(--brand-tint);
+  color: var(--brand-ink);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 5px 7px;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.strip-body{ flex: 1; min-width: 0; }
+
+.strip-head{
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.strip-sub{
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.strip-mins{
+  flex: 0 0 auto;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.strip-close{
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--surface-2);
+}
 
 /*leaflet needs a real height or the map collapses to nothing*/
 .map{

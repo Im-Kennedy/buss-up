@@ -24,7 +24,7 @@ function stopIcon() {
     });
 }
 
-function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = [], center, centerKey, onPickStop, onMapMove, dark = false }) {
+function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = [], center, centerKey, onPickStop, onMapMove, onPickBus, dark = false }) {
     //honolulu, used as the starting view before we know where the user is
     const fallback = [21.3069, -157.8583];
 
@@ -35,7 +35,6 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
     //held in state, not a ref: a ref is still null when our effects first run, so
     //anything that only attaches once (like the moveend listener) silently missed it
     const [map, setMap] = useState(null);
-    const markerRefs = useRef({});//id -> marker, so we can pop one open on command
     const centeredOnUser = useRef(false);//only auto-center on the user once
     const framedFor = useRef(null);//which bus weve already pointed the map at
 
@@ -119,7 +118,6 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
             map.flyTo([selLat, selLng], 14);
         }
 
-        markerRefs.current[selectedId]?.openPopup();
         framedFor.current = selectedId;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [map, selectedId, selLat, selLng]);
@@ -202,36 +200,38 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
                     </Marker>
                 )}
 
-                {/*one badge per bus that actually reported gps*/}
-                {buses.map((bus) => {
-                    const mins = minutesAway(bus);
-
-                    return (
-                        <Marker
-                            key={bus.id}
-                            position={[parseFloat(bus.latitude), parseFloat(bus.longitude)]}
-                            icon={busIcon(bus.route, bus.id === selectedId)}
-                            ref={(m) => {
-                                if (m) markerRefs.current[bus.id] = m;
-                            }}
-                        >
-                            {/*kept deliberately short. the stop name is already the
-                               heading under the map, and repeating it here made the
-                               bubble swallow half a phone screen*/}
-                            <Popup maxWidth={200} minWidth={120} autoPan={false}>
-                                <span className="pop-top">
-                                    <span className="pop-route">{bus.route}</span>
-                                    <span className="pop-mins">{formatWait(mins) ?? bus.stopTime}</span>
-                                </span>
-                                <span className="pop-head">{decodeText(bus.headsign)}</span>
-                                {/*the pin is where the bus is NOW, the time is when it
-                                   reaches the stop you picked*/}
-                                <span className="pop-sub">Here now · arrives {bus.stopTime}</span>
-                            </Popup>
-                        </Marker>
-                    );
-                })}
+                {/*one badge per bus that actually reported gps. no popup: when a bus
+                   sits near your stop the bubble covered the stop and the route line,
+                   so the details live in the strip below instead*/}
+                {buses.map((bus) => (
+                    <Marker
+                        key={bus.id}
+                        position={[parseFloat(bus.latitude), parseFloat(bus.longitude)]}
+                        icon={busIcon(bus.route, bus.id === selectedId)}
+                        eventHandlers={{ click: () => onPickBus?.(bus.id) }}
+                    />
+                ))}
             </MapContainer>
+
+            {/*details for the selected bus, pinned inside the map instead of floating
+               over its own marker. sits in reserved space, so it can never cover the
+               stop, the route line or another bus*/}
+            {selectedBus && (
+                <div className="bus-strip">
+                    <span className="strip-route">{selectedBus.route}</span>
+
+                    <div className="strip-body">
+                        <p className="strip-head">{decodeText(selectedBus.headsign)}</p>
+                        <p className="strip-sub">Here now · arrives {selectedBus.stopTime}</p>
+                    </div>
+
+                    <span className="strip-mins">
+                        {formatWait(minutesAway(selectedBus)) ?? selectedBus.stopTime}
+                    </span>
+
+                    <button className="strip-close" onClick={() => onPickBus?.(null)} aria-label="Close">×</button>
+                </div>
+            )}
         </div>
     );
 }
