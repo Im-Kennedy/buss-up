@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup } from "react-leaflet";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";//the raw leaflet library, needed to build our own icons
-import { minutesAway, isTracked, upcomingSegment, formatWait } from "./arrivals.js";
+import { minutesAway, isTracked, upcomingSegment, formatWait, decodeText } from "./arrivals.js";
 
 //builds a little badge with the route number inside it.
 //divIcon means the marker is just html, so we skip leaflets broken image icons
@@ -24,24 +24,13 @@ function stopIcon() {
     });
 }
 
-function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = [], center, centerKey, onPickStop, onMapMove }) {
+function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = [], center, centerKey, onPickStop, onMapMove, dark = false }) {
     //honolulu, used as the starting view before we know where the user is
     const fallback = [21.3069, -157.8583];
 
-    //a light map inside a dark app looks like a hole punched in the page,
-    //so the tiles follow the same system setting the css does
-    const [darkTiles, setDarkTiles] = useState(
-        () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
-    );
-
-    useEffect(() => {
-        const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-        if (!mq) return;
-
-        const onChange = (e) => setDarkTiles(e.matches);//fires if you flip the setting
-        mq.addEventListener("change", onChange);
-        return () => mq.removeEventListener("change", onChange);
-    }, []);
+    //a light map inside a dark app looks like a hole punched in the page, so the
+    //tiles follow whatever theme the app settled on (system or your override)
+    const darkTiles = dark;
 
     //held in state, not a ref: a ref is still null when our effects first run, so
     //anything that only attaches once (like the moveend listener) silently missed it
@@ -234,7 +223,7 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, mapStops = 
                                     <span className="pop-route">{bus.route}</span>
                                     <span className="pop-mins">{formatWait(mins) ?? bus.stopTime}</span>
                                 </span>
-                                <span className="pop-head">{bus.headsign}</span>
+                                <span className="pop-head">{decodeText(bus.headsign)}</span>
                                 {/*the pin is where the bus is NOW, the time is when it
                                    reaches the stop you picked*/}
                                 <span className="pop-sub">Here now · arrives {bus.stopTime}</span>

@@ -59,6 +59,24 @@ export function upcomingSegment(points, busLat, busLon, stopLat, stopLon) {
     return null;
 }
 
+//thebus sends headsigns html-encoded, so "WAIKIKI BEACH & HOTELS" arrives as
+//"WAIKIKI BEACH &amp; HOTELS". react escapes output, so it renders literally.
+//explicit replacements rather than innerHTML, which would run markup
+const ENTITIES = {
+    "&amp;": "&",
+    "&quot;": '"',
+    "&#39;": "'",
+    "&apos;": "'",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&nbsp;": " ",
+};
+
+export function decodeText(text) {
+    if (!text) return text;
+    return text.replace(/&(amp|quot|#39|apos|lt|gt|nbsp);/g, (m) => ENTITIES[m] || m);
+}
+
 //distance means more as "how long will this take me"
 export function walkTime(meters) {
     const mins = Math.round(meters / 80);//~80 m/min is a normal walking pace

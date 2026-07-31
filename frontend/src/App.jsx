@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"; //brings in usestate, how react remembers information
 import MapView from "./MapView.jsx";//leaflets css is loaded in main.jsx, before our theme
 import StopPicker from "./StopPicker.jsx";
-import { minutesAway, isTracked, formatWait } from "./arrivals.js";
+import { minutesAway, isTracked, formatWait, decodeText } from "./arrivals.js";
 import { API } from "./api.js";
 
 const REFRESH_MS = 30000;//re-ask the backend every 30 seconds
@@ -19,6 +19,9 @@ function onOahu([lat, lon]) {
     return lat >= OAHU.minLat && lat <= OAHU.maxLat && lon >= OAHU.minLon && lon <= OAHU.maxLon
 }
 
+const THEMES = ["auto", "light", "dark"]//tapping the button walks this list
+const THEME_ICON = { auto: "◐", light: "☀", dark: "☾" }
+
 function App() {
     const [stop, setStop] = useState(null)//the whole stop object now, not just a number
     const [reloadKey, setReloadKey] = useState(0)//bumping this forces a re-fetch of the same stop
@@ -35,8 +38,38 @@ function App() {
     const [nearby, setNearby] = useState([])//stops around whichever point were centred on
     const [showAll, setShowAll] = useState(false)//expand past the first handful of arrivals
     const [stuck, setStuck] = useState(false)//true once youve scrolled, to line the header
+    //"auto" follows the phone. picking light or dark overrides it and sticks
+    const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "auto")
+    const [systemDark, setSystemDark] = useState(
+        () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
+    )
+
     const [mapView, setMapView] = useState(null)//where the map is looking right now
     const [mapStops, setMapStops] = useState([])//stops around that spot
+
+    //the css keys off this attribute. removing it entirely hands control back
+    //to the phones own setting
+    useEffect(() => {
+        const root = document.documentElement
+
+        if (theme === "auto") root.removeAttribute("data-theme")
+        else root.setAttribute("data-theme", theme)
+
+        localStorage.setItem("theme", theme)
+    }, [theme])
+
+    //keeps "auto" honest if you flip the system setting while the page is open
+    useEffect(() => {
+        const mq = window.matchMedia?.("(prefers-color-scheme: dark)")
+        if (!mq) return
+
+        const onChange = (e) => setSystemDark(e.matches)
+        mq.addEventListener("change", onChange)
+        return () => mq.removeEventListener("change", onChange)
+    }, [])
+
+    //what the map tiles need to know: are we actually dark right now
+    const isDark = theme === "dark" || (theme === "auto" && systemDark)
 
     //the header only grows its bottom border once content slides under it
     useEffect(() => {
@@ -234,6 +267,17 @@ function App() {
                     {activeStop && !error && (
                         <span className="live-pill"><i className="live-dot" />Live</span>
                     )}
+
+                    <button
+                        className="theme-btn"
+                        //functional update, so two fast taps cant both read the
+                        //same stale value and land on the same theme
+                        onClick={() => setTheme((t) => THEMES[(THEMES.indexOf(t) + 1) % THEMES.length])}
+                        title={`Theme: ${theme}`}
+                        aria-label={`Theme: ${theme}. Tap to change.`}
+                    >
+                        {THEME_ICON[theme]}
+                    </button>
                 </div>
             </header>
 
@@ -281,6 +325,7 @@ function App() {
                     centerKey={centerKey}
                     onPickStop={pickStop}
                     onMapMove={setMapView}
+                    dark={isDark}
                 />
 
                 {/*colour key. one scrolling row so it stays a single line even on
@@ -354,15 +399,19 @@ function App() {
                         //only buses we can actually point at on the map are clickable
                         onClick={() => tracked && setSelectedId(arrival.id === selectedId ? null : arrival.id)}
                     >
-                        {/*left: route number badge*/}
-                        <div className="route-badge">{arrival.route}</div>
+                        {/*left: route number badge. the number alone is how riders
+                           talk about routes ("catch the 42"), but screen readers
+                           need the word or it reads as a bare number*/}
+                        <div className="route-badge" aria-label={`Route ${arrival.route}`}>
+                            {arrival.route}
+                        </div>
 
                         {/*middle destination name */}
                         {/*the meta line used to repeat "tap to trace its route" on
                            every single row, which was just noise. now it only speaks
                            up when theres something specific to say*/}
                         <div className="arrival-info">
-                            <p className="headsign">{arrival.headsign}</p>
+                            <p className="headsign">{decodeText(arrival.headsign)}</p>
                             {selectedId === arrival.id && <p className="meta">Route shown on map</p>}
                             {!tracked && <p className="meta">No live location</p>}
                         </div>
