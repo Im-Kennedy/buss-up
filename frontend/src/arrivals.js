@@ -23,6 +23,21 @@ export function minutesAway(arrival) {
     return Math.round((when - new Date()) / 60000);
 }
 
+//rough metres between two points. flat-earth maths is fine across one island
+function metresBetween(aLat, aLon, bLat, bLon) {
+    const dlat = (bLat - aLat) * 111320;
+    const dlon = (bLon - aLon) * 111320 * Math.cos((aLat * Math.PI) / 180);
+    return Math.hypot(dlat, dlon);
+}
+
+//a bus further than this from the route line isnt really driving that line yet:
+//usually its finishing an earlier trip or heading to the start. snapping it to
+//the "nearest" point anyway drew a short line miles from the actual bus
+const MAX_OFF_ROUTE_M = 400;
+
+//same idea for the stop sequence, allowing for genuinely sparse rural stops
+const MAX_OFF_STOP_M = 800;
+
 //which point on a route line is closest to a given spot.
 //plain squared distance, no square root, since we only care which is smallest
 export function nearestPointIndex(points, lat, lon) {
@@ -51,6 +66,11 @@ export function upcomingSegment(points, busLat, busLon, stopLat, stopLon) {
 
     const from = nearestPointIndex(points, busLat, busLon);
     const to = nearestPointIndex(points, stopLat, stopLon);
+
+    //bail if the bus isnt actually anywhere near this line. without this the
+    //match still "succeeds" and draws a stub of road nowhere near the bus
+    const offBy = metresBetween(busLat, busLon, points[from][0], points[from][1]);
+    if (offBy > MAX_OFF_ROUTE_M) return null;
 
     if (from === to) return null;
     if (from < to) return points.slice(from, to + 1);
@@ -109,6 +129,12 @@ export function stopsAway(routeStops, busLat, busLon, myStopId) {
     }
 
     if (busAt < 0 || busAt >= mine) return null;//already passed, or right at it
+
+    //same guard as the route line: if the bus isnt near any stop on this route,
+    //its not running it yet and any count would be made up
+    const near = routeStops[busAt];
+    if (metresBetween(busLat, busLon, near.lat, near.lon) > MAX_OFF_STOP_M) return null;
+
     return mine - busAt;
 }
 
