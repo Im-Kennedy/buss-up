@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup } from "react-leaflet";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import L from "leaflet";//the raw leaflet library, needed to build our own icons
 import { minutesAway, isTracked, upcomingSegment, formatWait, decodeText, stopsAway } from "./arrivals.js";
 
@@ -59,6 +59,19 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, routeStops,
 
         return () => map.off("moveend", report);
     }, [map, onMapMove]);
+
+    //the map box is sized in viewport units now, so it changes on rotate, on
+    //window resize, and when mobile browser chrome slides away. leaflet only
+    //watches window resize, so watch the element itself and tell it to redraw —
+    //without this it leaves blank strips where tiles should be
+    useEffect(() => {
+        if (!map || typeof ResizeObserver === "undefined") return;
+
+        const observer = new ResizeObserver(() => map.invalidateSize());
+        observer.observe(map.getContainer());
+
+        return () => observer.disconnect();
+    }, [map]);
 
     //move to whatever were centred on: your gps fix the first time it arrives,
     //or a street you searched. centerKey changes only when the place really
@@ -175,10 +188,22 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, routeStops,
                 {mapStops
                     .filter((s) => String(s.id) !== String(stop?.stop))
                     .map((s) => (
+                        <Fragment key={`near-${s.id}`}>
+                        {/*invisible finger-sized target under each ring. the visible
+                           dot is ~8px across, well under the ~44px a thumb needs, and
+                           leaflet hit-tests the drawn shape — so the tappable area has
+                           to be its own bigger circle. fillOpacity 0.01 rather than 0:
+                           a fully transparent fill isnt reliably hit-tested*/}
                         <CircleMarker
-                            key={`near-${s.id}`}
                             center={[s.lat, s.lon]}
-                            radius={stopPoint ? 4 : 5}
+                            radius={16}
+                            pathOptions={{ stroke: false, fillColor: "#000", fillOpacity: 0.01 }}
+                            eventHandlers={{ click: () => onPickStop?.(s) }}
+                        />
+
+                        <CircleMarker
+                            center={[s.lat, s.lon]}
+                            radius={stopPoint ? 5 : 6}
                             //hollow in both themes, so it matches the legend swatch.
                             //once youve chosen a stop these fade back: still tappable
                             //for the stop across the street, but no longer competing
@@ -197,6 +222,7 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, routeStops,
                                 <span className="pop-sub">Stop #{s.id} · tap for arrivals</span>
                             </Popup>
                         </CircleMarker>
+                        </Fragment>
                     ))}
 
                 {/*where youre actually waiting*/}

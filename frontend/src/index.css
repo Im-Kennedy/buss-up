@@ -522,7 +522,13 @@ input:focus{ outline: none; }
 
 /*leaflet needs a real height or the map collapses to nothing*/
 .map{
-  height: 300px;
+  /*scales with the window instead of being pinned at one height: roughly half
+    the viewport, floored so it never collapses on a short window and capped so
+    it doesnt push the arrivals off a tall desktop screen.
+    dvh is the mobile-safe unit — vh counts the browser chrome that hides on
+    scroll, which makes the map taller than the space actually available*/
+  height: clamp(260px, 48vh, 620px);
+  height: clamp(260px, 48dvh, 620px);
   width: 100%;
   border-radius: var(--r-md);
   background: var(--surface-2);
@@ -964,11 +970,19 @@ input:focus{ outline: none; }
 .sk-time{ width: 46px; height: 20px; flex: 0 0 auto; }
 .sk-body{ flex: 1; }
 
+/* ---------- big screens ---------- */
+
+/*the column is phone-width by design, but on a desktop that leaves the map
+  smaller than it needs to be. let it breathe without turning the arrival list
+  into long unreadable lines*/
+@media (min-width: 900px){
+  #root{ max-width: 780px; }
+}
+
 /* ---------- small screens ---------- */
 
 @media (max-width: 520px){
   #root{ padding: 0 13px 64px; }
   .topbar{ margin: 0 -13px; padding: 12px 13px 9px; }
-  .map{ height: 250px; }
   .mins{ font-size: 18px; }
 }
