@@ -626,6 +626,26 @@ input:focus{ outline: none; }
   box-shadow: var(--shadow-md);
 }
 
+/*osm only ships a light basemap, so dark mode inverts the tiles and spins the
+  hue back round — the standard trick. only the tile pane is filtered, so the
+  markers, route line and popups above it keep their real colours.
+  it also mutes the tiles a little, which is what carto's palette used to do*/
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .leaflet-tile-pane{
+    filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.7);
+  }
+}
+
+:root[data-theme="dark"] .leaflet-tile-pane{
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.7);
+}
+
+/*light mode: knock the colour back so buses and the route line stay the
+  loudest things on the map*/
+.leaflet-tile-pane{
+  filter: saturate(0.75) brightness(1.02);
+}
+
 /* ---------- map popups ---------- */
 
 /*leaflets defaults are generous, which eats a phone screen*/

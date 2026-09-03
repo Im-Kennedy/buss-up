@@ -148,13 +148,16 @@ function MapView({ position, arrivals = [], selectedId, stop, shape, routeStops,
                 zoom={position ? 15 : 11}
                 className="map"
             >
-                {/*carto positron: same openstreetmap data but a muted palette, so the
-                   buses and route line stand out instead of fighting the map*/}
+                {/*openstreetmaps own tiles: no api key, no account. carto used to
+                   serve a muted palette but now stamps "API KEY REQUIRED" across
+                   every tile unless you register, so this is the keyless option.
+                   dark mode is a css filter on the tile pane, since osm has no
+                   dark variant — see .leaflet-tile-pane in index.css*/}
                 <TileLayer
-                    key={darkTiles ? "dark" : "light"}//forces leaflet to swap tile sets
-                    url={`https://{s}.basemaps.cartocdn.com/${darkTiles ? "dark_all" : "light_all"}/{z}/{x}/{y}{r}.png`}
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    subdomains="abcd"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    subdomains="abc"
+                    maxZoom={19}
                 />
 
                 {/*the path the selected bus drives. drawn first so pins sit on top.
